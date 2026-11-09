@@ -5,6 +5,12 @@ This is exactly the code of the release on Nexus Mods: `DragonkinTrainer.exe` (t
 
 Single-player / offline only. Fan-made, not affiliated with Eko Software or Nacon.
 
+## Download
+- **Nexus Mods:** https://www.nexusmods.com/dragonkinthebanished/mods/10
+- **GitHub release:** https://github.com/RipXic/DragonkinTrainer/releases/tag/v1.0.0 (the same zip)
+- SHA-256 of `DragonkinTrainer_1.0.0.zip`: `02842981041f2a8744f2f4096222d3962ce344e54b22de780f31dfe1753201ec`
+  (check with `Get-FileHash .\DragonkinTrainer_1.0.0.zip` in PowerShell)
+
 ## What the two files do
 - **DragonkinTrainer.exe** (`loader/loader.cpp`) starts the game through Steam (`steam://rungameid/1863430`), or finds the
   running game, and loads `native.dll` into it with `LoadLibraryW` (CreateRemoteThread). Nothing is written to the game folder.
