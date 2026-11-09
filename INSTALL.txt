@@ -1,0 +1,27 @@
+DRAGONKIN TRAINER 1.0.0
+Single-player / offline only. In a co-op session every cheat switches itself off.
+
+REQUIREMENTS
+  Windows 10 or 11 (64-bit) and Dragonkin: The Banished on Steam. Nothing else - no mod loader, no extra runtimes.
+
+INSTALL
+  Unzip this folder anywhere you like (not inside the game folder). Nothing is copied into the game.
+  Keep the files in it together.
+
+PLAY
+  1. Run DragonkinTrainer.exe. It starts the game through Steam and loads the trainer by itself.
+     (If the game is already running, it attaches to it.)
+  2. Load your character and press INSERT to open the trainer. Change the key on the SETTINGS page.
+  3. Cheats you switch on stay on after zone changes, deaths and restarts until you switch them off.
+  Starting the game from Steam alone runs it without the trainer.
+
+UNINSTALL
+  Delete this folder.
+
+GOOD TO KNOW
+  - Back up your saves before big changes: <game>\DragonkinTheBanished\Saved\SaveGames
+  - trainer.log next to the trainer says what happened if something does not work.
+  - TALENTS page: read what a talent does before you raise it - some talents can hurt you when used wrong.
+  - ANCESTRAL GRID: the extra cells do not line up with the grid picture. If you turn the bigger grid off (or play
+    without the trainer), fragments in extra cells go floating - they are kept, they just stop counting.
+  - "Every fragment touches every fragment" and the grid size take effect after a zone change / loading your character.

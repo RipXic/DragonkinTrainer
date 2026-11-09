@@ -1,0 +1,889 @@
+{
+ "title": "Dragonkin Trainer",
+ "width": 600,
+ "height": 760,
+ "tabs": [
+  {
+   "name": "Player",
+   "sections": [
+    {
+     "name": "Protection",
+     "items": [
+      {
+       "id": "god",
+       "type": "toggle",
+       "label": "God mode",
+       "feature": "god",
+       "desc": "Game's own damage reduction at its 99% cap + instant refill of the rest. Survives zone changes."
+      },
+      {
+       "id": "invincible",
+       "type": "toggle",
+       "label": "Invincible",
+       "feature": "invincible",
+       "desc": "The game's own invincibility switch. Re-applied after every zone change."
+      },
+      {
+       "id": "inf_barrier",
+       "type": "toggle",
+       "label": "Infinite barrier",
+       "feature": "inf_barrier",
+       "desc": "Keeps the barrier (the blue part of the health bar) full."
+      },
+      {
+       "id": "barrier_max",
+       "type": "slider",
+       "label": "Barrier size",
+       "feature": "barrier_max",
+       "min": 0,
+       "max": 5000,
+       "step": 50,
+       "off": 0,
+       "default": 500,
+       "desc": "Base size of the barrier. 0 = off (only what your gear and talents give). The game adds your gear on top."
+      },
+      {
+       "id": "inf_mana",
+       "type": "toggle",
+       "label": "Infinite energy / mana",
+       "feature": "inf_mana"
+      },
+      {
+       "id": "inf_rage",
+       "type": "toggle",
+       "label": "Infinite rage",
+       "feature": "inf_rage"
+      },
+      {
+       "id": "inf_ultimate",
+       "type": "toggle",
+       "label": "Ultimate always ready",
+       "feature": "inf_ultimate"
+      },
+      {
+       "id": "inf_potions",
+       "type": "toggle",
+       "label": "Infinite potions",
+       "feature": "inf_potions"
+      },
+      {
+       "id": "inf_dodge",
+       "type": "toggle",
+       "label": "Infinite dodges",
+       "feature": "inf_dodge"
+      }
+     ]
+    },
+    {
+     "name": "Skills",
+     "items": [
+      {
+       "id": "no_cooldowns",
+       "type": "toggle",
+       "label": "No skill cooldowns",
+       "feature": "no_cooldowns",
+       "desc": "The game's own developer switch (m_bIgnoreCooldowns)."
+      },
+      {
+       "id": "no_costs",
+       "type": "toggle",
+       "label": "No skill cost",
+       "feature": "no_costs",
+       "desc": "The game's own developer switch (m_bIgnoreCosts)."
+      }
+     ]
+    },
+    {
+     "name": "Movement",
+     "items": [
+      {
+       "id": "move_speed",
+       "type": "slider",
+       "label": "Movement speed",
+       "feature": "move_speed",
+       "min": 300,
+       "max": 2000,
+       "step": 10,
+       "off": 600,
+       "default": 600,
+       "desc": "600 = normal (off). Gear bonuses are added on top by the game."
+      },
+      {
+       "id": "dodge_distance",
+       "type": "slider",
+       "label": "Dodge distance x",
+       "feature": "dodge_distance",
+       "min": 1,
+       "max": 5,
+       "step": 0.1,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = normal (off). The game's own dodge distance multiplier."
+      }
+     ]
+    },
+    {
+     "name": "Live",
+     "items": [
+      {
+       "id": "r_level",
+       "type": "readout",
+       "label": "Level"
+      },
+      {
+       "id": "r_hp",
+       "type": "readout",
+       "label": "Health"
+      },
+      {
+       "id": "r_res",
+       "type": "readout",
+       "label": "Energy / mana"
+      },
+      {
+       "id": "r_points",
+       "type": "readout",
+       "label": "Unspent attribute points"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Progress",
+   "sections": [
+    {
+     "name": "Level",
+     "items": [
+      {
+       "id": "lvl1",
+       "type": "button",
+       "label": "Gain 1 level",
+       "button": "+1"
+      },
+      {
+       "id": "lvl5",
+       "type": "button",
+       "label": "Gain 5 levels",
+       "button": "+5"
+      },
+      {
+       "id": "xp10k",
+       "type": "button",
+       "label": "Add 10,000 XP",
+       "button": "+10K"
+      },
+      {
+       "id": "xp1m",
+       "type": "button",
+       "label": "Add 1,000,000 XP",
+       "button": "+1M"
+      }
+     ]
+    },
+    {
+     "name": "Attribute points",
+     "items": [
+      {
+       "id": "bonus_points",
+       "type": "slider",
+       "label": "Bonus attribute points",
+       "feature": "bonus_points",
+       "min": 0,
+       "max": 500,
+       "step": 5,
+       "off": 0,
+       "default": 0,
+       "desc": "Added to the points you earn (4 per level). Kept through death and zone changes. 0 = off."
+      }
+     ]
+    },
+    {
+     "name": "Multipliers",
+     "items": [
+      {
+       "id": "xp_mult",
+       "type": "slider",
+       "label": "XP multiplier",
+       "feature": "xp_mult",
+       "min": 1,
+       "max": 20,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off"
+      },
+      {
+       "id": "wyrm_xp_mult",
+       "type": "slider",
+       "label": "Wyrmling XP multiplier",
+       "feature": "wyrm_xp_mult",
+       "min": 1,
+       "max": 20,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Resources",
+   "sections": [
+    {
+     "name": "Currencies",
+     "items": [
+      {
+       "id": "gold10k",
+       "type": "button",
+       "label": "Gold",
+       "button": "+10K",
+       "desc": "Added through the game's own loot pickup - same as picking up a gold pile."
+      },
+      {
+       "id": "gold100k",
+       "type": "button",
+       "label": "Gold",
+       "button": "+100K"
+      },
+      {
+       "id": "gold1m",
+       "type": "button",
+       "label": "Gold",
+       "button": "+1M"
+      },
+      {
+       "id": "dust100",
+       "type": "button",
+       "label": "Primordial Dust",
+       "button": "+100"
+      },
+      {
+       "id": "dust1k",
+       "type": "button",
+       "label": "Primordial Dust",
+       "button": "+1000"
+      },
+      {
+       "id": "echo100",
+       "type": "button",
+       "label": "Echo Chains",
+       "button": "+100"
+      },
+      {
+       "id": "r_gold",
+       "type": "readout",
+       "label": "Gold now"
+      }
+     ]
+    },
+    {
+     "name": "Crafting",
+     "items": [
+      {
+       "id": "mats50",
+       "type": "button",
+       "label": "Every material",
+       "button": "+50",
+       "desc": "Every material type the game knows (all colours and tiers)."
+      },
+      {
+       "id": "res50",
+       "type": "button",
+       "label": "Every resource",
+       "button": "+50"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Loot",
+   "sections": [
+    {
+     "name": "Ancestral fragments",
+     "items": [
+      {
+       "id": "frag_drop",
+       "type": "slider",
+       "label": "Fragment drop chance x",
+       "feature": "frag_drop",
+       "min": 1,
+       "max": 1000,
+       "step": 1,
+       "off": 1,
+       "default": 1,
+       "desc": "Edits every enemy's fragment loot table. Base: trash 0.1%, DPS 1%, tank 10%, elite 35%, chest 5% (bosses always drop). x100 = trash 10%; x1000 = every enemy drops one. 1 = off (originals restored)."
+      },
+      {
+       "id": "frag_rarity",
+       "type": "slider",
+       "label": "Fragment rarity boost",
+       "feature": "frag_rarity",
+       "min": 1,
+       "max": 10,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "Multiplies each rarity's weight by boost^rarity (common x1 ... mythical x boost^4). 1 = off."
+      },
+      {
+       "id": "frag_divine",
+       "type": "toggle",
+       "label": "Fragments always Divine",
+       "feature": "frag_divine",
+       "desc": "Sets the loot table's own force-Divine flag on every fragment drop."
+      },
+      {
+       "id": "frag_drop_attr",
+       "type": "slider",
+       "label": "Fragment drop stat (game multiplier)",
+       "feature": "frag_drop_attr",
+       "min": 1,
+       "max": 50,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "The game's SkillFragmentDropMultiplier stat (gear bonus stat). 1 = off."
+      },
+      {
+       "id": "frag_quality_attr",
+       "type": "slider",
+       "label": "Fragment quality stat (game multiplier)",
+       "feature": "frag_quality_attr",
+       "min": 1,
+       "max": 50,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "The game's FragmentQualityMultiplier stat. 1 = off."
+      }
+     ]
+    },
+    {
+     "name": "Storage & loot rules",
+     "items": [
+      {
+       "id": "floating_cap",
+       "type": "slider",
+       "label": "Floating fragment limit",
+       "feature": "floating_cap",
+       "min": 50,
+       "max": 2000,
+       "step": 10,
+       "off": 50,
+       "default": 50,
+       "desc": "Game default 50 (the 'x/50 floating fragments' counter)."
+      },
+      {
+       "id": "frag_cap",
+       "type": "slider",
+       "label": "Fragment inventory capacity",
+       "feature": "frag_cap",
+       "min": 300,
+       "max": 9999,
+       "step": 50,
+       "off": 300,
+       "default": 300,
+       "desc": "How many fragments you can carry. Game default 300."
+      },
+      {
+       "id": "frag_tabs",
+       "type": "slider",
+       "label": "Fragment stash tabs",
+       "feature": "frag_tabs",
+       "min": 4,
+       "max": 12,
+       "step": 1,
+       "off": 4,
+       "default": 4,
+       "desc": "Stash tabs in the grid menu. Game default 4 (city upgrades add more). Untested: reopen the grid to see."
+      },
+      {
+       "id": "equip_cap",
+       "type": "slider",
+       "label": "Equipment bag capacity",
+       "feature": "equip_cap",
+       "min": 36,
+       "max": 200,
+       "step": 4,
+       "off": 36,
+       "default": 36,
+       "desc": "Equipment bag slots. Game default 36. Untested: the bag UI may not show extra slots."
+      },
+      {
+       "id": "pity_time",
+       "type": "slider",
+       "label": "Pity loot timer (s)",
+       "feature": "pity_time",
+       "min": 10,
+       "max": 1800,
+       "step": 10,
+       "off": 1800,
+       "default": 1800,
+       "desc": "Time without loot before a guaranteed 'pity' drop. Game default 1800 s (30 min)."
+      },
+      {
+       "id": "divine_chance",
+       "type": "slider",
+       "label": "Divine loot base chance",
+       "feature": "divine_chance",
+       "min": -0.005,
+       "max": 1,
+       "step": 0.005,
+       "off": -0.005,
+       "default": -0.005,
+       "desc": "Base chance of Divine loot (game: -0.5% + 0.1% per loot-quality step). 1 = always."
+      }
+     ]
+    },
+    {
+     "name": "Ancestral Grid",
+     "items": [
+      {
+       "id": "grid_size",
+       "type": "slider",
+       "label": "Grid size",
+       "feature": "grid_size",
+       "min": 0,
+       "max": 2,
+       "step": 1,
+       "off": 0,
+       "default": 1,
+       "desc": "0 = normal. 1 = fill every gap in the grid's outline. 2 = also one extra ring around it (Witch 51 -> 121 cells). WARNING: the new cells do not line up with the grid picture in the game - they are real slots but invisible until you hover or fill them. Shows after a zone change or character load. Fragments left in added cells when you turn this off or play without the trainer: untested."
+      },
+      {
+       "id": "grid_unlock",
+       "type": "toggle",
+       "label": "Unlock every grid cell",
+       "feature": "grid_unlock",
+       "desc": "Removes the level requirement on every cell (city keyhole slots stay locked). Shows after a zone change or character load."
+      },
+      {
+       "id": "grid_link",
+       "type": "toggle",
+       "label": "Every fragment touches every fragment",
+       "feature": "grid_link",
+       "desc": "Every fragment on your grid counts as touching every other one: power, chains, skill rank and the tooltip use the whole grid. Change zone once after switching it on or off so the whole grid is rebuilt."
+      },
+      {
+       "id": "r_grid",
+       "type": "readout",
+       "label": "Grid cells per class"
+      }
+     ]
+    },
+    {
+     "name": "Drops",
+     "items": [
+      {
+       "id": "gold_mult",
+       "type": "slider",
+       "label": "Gold multiplier",
+       "feature": "gold_mult",
+       "min": 1,
+       "max": 50,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off. The game adds your gear bonus on top."
+      },
+      {
+       "id": "loot_quality",
+       "type": "slider",
+       "label": "Loot quality",
+       "feature": "loot_quality",
+       "min": 1,
+       "max": 20,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off"
+      },
+      {
+       "id": "loot_efficiency",
+       "type": "slider",
+       "label": "Loot efficiency",
+       "feature": "loot_efficiency",
+       "min": 1,
+       "max": 20,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off"
+      },
+      {
+       "id": "material_drop",
+       "type": "slider",
+       "label": "Material drops",
+       "feature": "material_drop",
+       "min": 1,
+       "max": 20,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off"
+      },
+      {
+       "id": "resource_gain",
+       "type": "slider",
+       "label": "Resource gain",
+       "feature": "resource_gain",
+       "min": 1,
+       "max": 20,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off"
+      },
+      {
+       "id": "egg_drop",
+       "type": "slider",
+       "label": "Egg drops",
+       "feature": "egg_drop",
+       "min": 1,
+       "max": 20,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off"
+      },
+      {
+       "id": "loot_range",
+       "type": "slider",
+       "label": "Loot pickup range",
+       "feature": "loot_range",
+       "min": 140,
+       "max": 3000,
+       "step": 10,
+       "off": 140,
+       "default": 140,
+       "desc": "140 = normal"
+      },
+      {
+       "id": "equip_drop",
+       "type": "slider",
+       "label": "Equipment drop multiplier",
+       "feature": "equip_drop",
+       "min": 1,
+       "max": 50,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "The game's EquipmentDropMultiplier stat. 1 = off."
+      },
+      {
+       "id": "equip_quality",
+       "type": "slider",
+       "label": "Equipment quality multiplier",
+       "feature": "equip_quality",
+       "min": 1,
+       "max": 50,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "The game's EquipmentQualityMultiplier stat. 1 = off."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Combat",
+   "sections": [
+    {
+     "name": "Damage",
+     "items": [
+      {
+       "id": "damage_mult",
+       "type": "slider",
+       "label": "Final damage multiplier",
+       "feature": "damage_mult",
+       "min": 1,
+       "max": 100,
+       "step": 1,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off"
+      },
+      {
+       "id": "crit_chance",
+       "type": "slider",
+       "label": "Critical chance",
+       "feature": "crit_chance",
+       "min": 0,
+       "max": 1,
+       "step": 0.05,
+       "off": 0,
+       "default": 0,
+       "desc": "0 = off (uses your gear's own chance)"
+      },
+      {
+       "id": "crit_damage",
+       "type": "slider",
+       "label": "Critical damage multiplier",
+       "feature": "crit_damage",
+       "min": 1,
+       "max": 20,
+       "step": 0.5,
+       "off": 1,
+       "default": 1,
+       "desc": "1 = off"
+      },
+      {
+       "id": "armor_pierce",
+       "type": "slider",
+       "label": "Armor pierce",
+       "feature": "armor_pierce",
+       "min": 0,
+       "max": 1,
+       "step": 0.05,
+       "off": 0,
+       "default": 0,
+       "desc": "0 = off"
+      }
+     ]
+    },
+    {
+     "name": "Speed & skills",
+     "items": [
+      {
+       "id": "attack_speed",
+       "type": "slider",
+       "label": "Attack / animation speed x",
+       "feature": "attack_speed",
+       "min": 1,
+       "max": 5,
+       "step": 0.1,
+       "off": 1,
+       "default": 1
+      },
+      {
+       "id": "extra_projectiles",
+       "type": "slider",
+       "label": "Extra projectiles",
+       "feature": "extra_projectiles",
+       "min": 0,
+       "max": 20,
+       "step": 1,
+       "off": 0,
+       "default": 0
+      },
+      {
+       "id": "area_size",
+       "type": "slider",
+       "label": "Skill area size x",
+       "feature": "area_size",
+       "min": 1,
+       "max": 5,
+       "step": 0.1,
+       "off": 1,
+       "default": 1
+      },
+      {
+       "id": "cdr",
+       "type": "slider",
+       "label": "Cooldown reduction",
+       "feature": "cdr",
+       "min": 0,
+       "max": 0.95,
+       "step": 0.05,
+       "off": 0,
+       "default": 0
+      },
+      {
+       "id": "lifesteal",
+       "type": "slider",
+       "label": "Lifesteal",
+       "feature": "lifesteal",
+       "min": 0,
+       "max": 1,
+       "step": 0.05,
+       "off": 0,
+       "default": 0
+      },
+      {
+       "id": "health_regen",
+       "type": "slider",
+       "label": "Health regen",
+       "feature": "health_regen",
+       "min": 0,
+       "max": 500,
+       "step": 5,
+       "off": 1,
+       "default": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Wyrmling",
+   "sections": [
+    {
+     "name": "Companion",
+     "items": [
+      {
+       "id": "r_wyrm",
+       "type": "readout",
+       "label": "Wyrmling"
+      },
+      {
+       "id": "wyrm_l10",
+       "type": "button",
+       "label": "Wyrmling level",
+       "button": "+10"
+      },
+      {
+       "id": "wyrm_max",
+       "type": "button",
+       "label": "Wyrmling level",
+       "button": "MAX 50",
+       "desc": "The game's own SetLvlXpForDragonCompanion. Saved with the character."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "City",
+   "sections": [
+    {
+     "name": "Montescail (open in the city hub)",
+     "items": [
+      {
+       "id": "r_city_level",
+       "type": "readout",
+       "label": "City level"
+      },
+      {
+       "id": "r_city_xp",
+       "type": "readout",
+       "label": "City XP"
+      },
+      {
+       "id": "r_city_points",
+       "type": "readout",
+       "label": "Upgrade points"
+      },
+      {
+       "id": "r_city_upgrades",
+       "type": "readout",
+       "label": "Upgrades unlocked"
+      }
+     ]
+    },
+    {
+     "name": "Level",
+     "items": [
+      {
+       "id": "city_lvl_up",
+       "type": "button",
+       "label": "City level",
+       "button": "+1",
+       "desc": "Like a real level-up: sets the level and XP and grants that level's upgrade points."
+      },
+      {
+       "id": "city_lvl_10",
+       "type": "button",
+       "label": "City level",
+       "button": "10"
+      },
+      {
+       "id": "city_lvl_25",
+       "type": "button",
+       "label": "City level",
+       "button": "25"
+      },
+      {
+       "id": "city_lvl_50",
+       "type": "button",
+       "label": "City level",
+       "button": "MAX 50",
+       "desc": "Level 50 = last level with rewards; its points (50 total) pay for every upgrade."
+      }
+     ]
+    },
+    {
+     "name": "Upgrades",
+     "items": [
+      {
+       "id": "city_pts5",
+       "type": "button",
+       "label": "Upgrade points",
+       "button": "+5"
+      },
+      {
+       "id": "city_unlock_all",
+       "type": "button",
+       "label": "Unlock every available upgrade",
+       "button": "UNLOCK",
+       "desc": "Uses the game's own TryUnlockUpgrade (spends points, follows the tree and level requirements). Saved with the city.",
+       "danger": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "World",
+   "sections": [
+    {
+     "name": "Time",
+     "items": [
+      {
+       "id": "game_speed",
+       "type": "slider",
+       "label": "Game speed",
+       "min": 0.25,
+       "max": 4,
+       "step": 0.25,
+       "default": 1,
+       "desc": "1 = normal. Whole game (world + you)."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Trainer",
+   "sections": [
+    {
+     "name": "Keeper",
+     "items": [
+      {
+       "id": "r_ready",
+       "type": "readout",
+       "label": "Ready on this character"
+      },
+      {
+       "id": "r_zone",
+       "type": "readout",
+       "label": "Zone changes handled"
+      },
+      {
+       "id": "r_world",
+       "type": "readout",
+       "label": "Zone"
+      },
+      {
+       "id": "r_solo",
+       "type": "readout",
+       "label": "Solo session"
+      },
+      {
+       "id": "all_off",
+       "type": "button",
+       "label": "Turn every feature off",
+       "button": "ALL OFF",
+       "desc": "Restores your character's own values.",
+       "danger": true
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
