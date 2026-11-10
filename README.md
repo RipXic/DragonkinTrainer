@@ -34,6 +34,7 @@ Output: `bin\DragonkinTrainer.exe`, `bin\native.dll`, `bin\panel.json` (the pane
 
 ## License
 **Source-available, not open source.** You may read the code and build it for your own single-player use.
-You may **not** redistribute, re-upload, fork-and-release, sell, or reuse the code or builds without written permission.
+You may **not** redistribute, re-upload, fork-and-release, sell, or reuse the code or builds without written permission,
+and you may **not** use this code to train or build datasets for AI / machine-learning models or to make AI-generated copies of it.
 Full terms: [LICENSE](LICENSE). Third-party code in `third_party/` keeps its own licenses (MIT / BSD 2-Clause).
 Official download: https://www.nexusmods.com/dragonkinthebanished/mods/10

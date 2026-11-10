@@ -21,6 +21,11 @@ can read it, check what the trainer does, and build it for themselves. It is NOT
       behind a paywall, subscription or "early access".
    e. Remove or change this license, the copyright notice, or the credits.
    f. Use the Software in online / multiplayer sessions to gain an advantage over other players.
+   g. Use the Software, its source code or any part of it to train, fine-tune, evaluate or build datasets for
+      artificial intelligence or machine-learning models or code assistants, or feed it to an AI tool in order to
+      produce a copy, port, rewrite or derivative of it for distribution. This applies to people and to automated
+      systems (crawlers, scrapers, AI agents) alike. Reading the code with an AI tool for your own private
+      understanding or your own private build (section 1) is allowed; publishing anything produced that way is not.
 
 3. GitHub
    This repository is public on GitHub. GitHub's Terms of Service allow GitHub users to view and fork public
