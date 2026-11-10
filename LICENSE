@@ -1,0 +1,47 @@
+Dragonkin Trainer - Source-Available License (No Redistribution)
+Copyright (c) 2026 RipXic. All rights reserved.
+
+This repository contains the source code of Dragonkin Trainer ("the Software"). The source is published so that anyone
+can read it, check what the trainer does, and build it for themselves. It is NOT open source.
+
+1. What you MAY do
+   a. Read and study the source code.
+   b. Build the Software from this source and run it on your own computer, for your own single-player use.
+   c. Make changes for your own private, personal use, as long as you never share the changed version (see 2).
+   d. Link to this repository or to the official download page:
+      https://www.nexusmods.com/dragonkinthebanished/mods/10
+
+2. What you may NOT do without written permission from RipXic
+   a. Redistribute, re-upload, mirror or share the Software, its source code, compiled builds, or any part of them,
+      on any website, mod site, file host, launcher, mod pack, collection, Discord server or anywhere else.
+   b. Publish or distribute modified versions, forks, ports or derivative works (including "fixed", "updated",
+      translated or re-branded builds).
+   c. Use the Software, its source code or any part of it in another product, trainer, tool or project.
+   d. Sell, rent, license or otherwise make money from the Software or anything built from it, including putting it
+      behind a paywall, subscription or "early access".
+   e. Remove or change this license, the copyright notice, or the credits.
+   f. Use the Software in online / multiplayer sessions to gain an advantage over other players.
+
+3. GitHub
+   This repository is public on GitHub. GitHub's Terms of Service allow GitHub users to view and fork public
+   repositories on GitHub itself; that permission exists only as far as GitHub's terms require it. A fork does not
+   grant any of the rights withheld in section 2: you may not distribute, release or publish builds from a fork.
+
+4. Third-party code
+   The folder third_party/ contains code by other authors under their own licenses, which still apply to those
+   files and are not changed by this license:
+   - Dear ImGui (third_party/imgui-1.91.9b) - MIT License, see its LICENSE.txt
+   - MinHook (third_party/minhook-master) - BSD 2-Clause License, see its LICENSE.txt
+   - nlohmann/json (third_party/json.hpp) - MIT License, see the header of that file
+   This license covers everything else in this repository (the trainer's own code, build script and data).
+
+5. No warranty
+   The Software is provided "as is", without warranty of any kind. Use it at your own risk and back up your saves.
+   The author is not liable for any damage, data loss, bans or other problems that come from using it.
+
+6. Not affiliated
+   Dragonkin Trainer is a fan-made tool. It is not affiliated with, endorsed by or connected to Eko Software or Nacon.
+   Dragonkin: The Banished and its content belong to their owners.
+
+If you want to do something that section 2 does not allow (for example host it on another site, or use part of the
+code), ask RipXic on the Nexus Mods page above. Permission only counts if it is given in writing.

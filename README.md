@@ -31,3 +31,9 @@ Output: `bin\DragonkinTrainer.exe`, `bin\native.dll`, `bin\panel.json` (the pane
 - [Dear ImGui](https://github.com/ocornut/imgui) 1.91.9b — MIT
 - [MinHook](https://github.com/TsudaKageyu/minhook) — BSD 2-Clause
 - [nlohmann/json](https://github.com/nlohmann/json) — MIT
+
+## License
+**Source-available, not open source.** You may read the code and build it for your own single-player use.
+You may **not** redistribute, re-upload, fork-and-release, sell, or reuse the code or builds without written permission.
+Full terms: [LICENSE](LICENSE). Third-party code in `third_party/` keeps its own licenses (MIT / BSD 2-Clause).
+Official download: https://www.nexusmods.com/dragonkinthebanished/mods/10
