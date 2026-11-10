@@ -1,6 +1,6 @@
 // DragonkinTheBanished Bridge - hot reload: the first copy loaded into the game is the HOST for the whole session
 // (DX12 overlay, ImGui context, fonts, item icons, input capture, panel toggle key). Every later copy
-// loaded by "Reload trainer" is a CLIENT: it runs all features, the AI link and the panel contents,
+// loaded by "Reload trainer" is a CLIENT: it runs all features, the dev link and the panel contents,
 // and draws them through the host's ImGui context.
 #pragma once
 #include <cstdint>

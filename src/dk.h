@@ -12,7 +12,7 @@ void post(const json& requests);          // [{seq, op: set|click|call|all_off, 
 json state();                             // { seq_done, results, values, readouts, keeper, player, selfheal, panel_log }
 uint64_t state_version();                 // changes whenever state() would return something new
 
-// developer access (DEV AI link): DK.STATUS / DK.SET / DK.CALL / DK.ATTR
+// developer access (dev link): DK.STATUS / DK.SET / DK.CALL / DK.ATTR
 json cmd(const std::string& name, const json& a);
 
 } // namespace dk

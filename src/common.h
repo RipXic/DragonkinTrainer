@@ -20,7 +20,7 @@
 using json = nlohmann::json;
 
 // Two builds from one source (build.bat): DEV (default) = everything; PUBLIC (set PUBLIC=1 -> /DWB_PUBLIC=1,
-// bin\public\native.dll) = the trainer panel + its Lua file link only - no AI link / server, no research tools, no
+// bin\public\native.dll) = the trainer panel + its Lua file link only - no dev link / server, no research tools, no
 // developer mode. Most of the split is by file (build.bat leaves server/sigs/rtti/bp/guard/code/names/modfs out).
 #define WB_PUBLIC 1
 
@@ -31,7 +31,7 @@ constexpr const char* kGameExe = "DragonkinTheBanished-Win64-Shipping.exe";
 
 struct Config {
     std::string root;              // folder holding the DLL, config, panel, captures
-    int port = 47850;              // AI link (127.0.0.1 only). Wolcen uses 47830.
+    int port = 47850;              // dev link (127.0.0.1 only). Wolcen uses 47830.
     bool allow_raw = false;        // FN.CALL / MEM.WRITE / BP / PATCH - the user's switch in config.json
     bool lock_input = true;        // game gets no mouse/keyboard while the panel is open
     int  backup_minutes = 20;      // periodic save backups (0 = only on attach)
@@ -46,7 +46,7 @@ void save_config();
 struct Hotkey { int vk = VK_INSERT; bool ctrl = false, shift = false, alt = false; };
 struct Settings {
     Hotkey hotkey;
-    bool developer_mode = false;   // DEV build: shows the BRIDGE page + AI link info. Always false in the PUBLIC build.
+    bool developer_mode = false;   // DEV build: shows the BRIDGE page + dev link info. Always false in the PUBLIC build.
     float ui_scale = 1.f;          // panel scale 0.75 .. 1.5 (font scale + layout, no font rebuild)
 };
 extern Settings g_settings;
@@ -104,7 +104,7 @@ extern std::atomic<bool> g_features_off;   // hot reload: this copy handed its f
 extern std::atomic<bool> g_reload_failed;
 json cmd_reload(const json& a);            // BRIDGE.RELOAD - load the newest build without restarting the game
 
-// ---- AI link ----
+// ---- dev link ----
 void start_server();
 void server_stop();
 json dispatch(const json& req);
@@ -166,7 +166,7 @@ json guard_cmd_journal(const json& a);
 json guard_cmd_watch(const json& a);                // re-scan for the validator / error raise sites
 json guard_cmd_backup(const json& a);               // save backup now
 json guard_cmd_errors(const json& a);
-void draw_guard_tab();                              // (not shown in the Dragonkin panel; kept for the AI link / later use)
+void draw_guard_tab();                              // (not shown in the Dragonkin panel; kept for the dev link / later use)
 json guard_cmd_sites(const json& a);                 // every place the error code is raised in game code               // recorded error events with context
 void guard_note_feature(const std::string& name);   // last bridge writer (reported with caught errors)
 

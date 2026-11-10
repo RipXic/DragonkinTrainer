@@ -1,5 +1,5 @@
 // Dragonkin Trainer loader. DEV build: bin\nativeLoader.exe (+ --watch). PUBLIC build (/DWB_PUBLIC=1):
-// bin\public\DragonkinTrainer.exe - same attach logic, no --watch, no AI link line.
+// bin\public\DragonkinTrainer.exe - same attach logic, no --watch, no dev link line.
 // Attaches native.dll to DragonkinTheBanished-Win64-Shipping.exe. Nothing in the game folder is modified (no ASI, no
 // mod manager). Two ways in:
 //   nativeLoader.exe            game not running: start it through Steam and attach as soon as its

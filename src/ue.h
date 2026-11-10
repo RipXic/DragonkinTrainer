@@ -132,7 +132,7 @@ void journal_scope(bool on);     // journal only one-off actions (panel clicks /
 bool blocked(uintptr_t fn);
 std::string func_path(uintptr_t fn);
 
-// ---- developer commands (AI link): UE.STATUS / UE.FIND / UE.PROPS / UE.FUNCS / UE.GET / UE.CALL ...
+// ---- developer commands (dev link): UE.STATUS / UE.FIND / UE.PROPS / UE.FUNCS / UE.GET / UE.CALL ...
 json cmd(const std::string& name, const json& a);
 
 } // namespace ue
