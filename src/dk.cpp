@@ -798,7 +798,9 @@ static Def cfg_feature(const char* id, const char* name, const char* field, doub
             if (env_get("DK_CFG_" + key, ev)) g_cfg_orig[key] = atof(ev.c_str());
             else { g_cfg_orig[key] = ue::get_num(b, p); env_set("DK_CFG_" + key, fmt("%.9g", g_cfg_orig[key])); } }
         ue::set_num(b, p, v); return ""; };
-    d.check = [f, map_key](double v) { uintptr_t b; Prop p; return cfg_slot(f, b, p, map_key) && std::fabs(ue::get_num(b, p) - v) < 1e-4; };
+    d.check = [f, map_key](double v) { uintptr_t b; Prop p; if (!cfg_slot(f, b, p, map_key)) return false;
+        double r = ue::get_num(b, p);   // whole-number fields store a typed 5149.5 as 5149: that is applied, not undone
+        return std::fabs(r - v) < 1e-4 || (r == std::floor(r) && std::fabs(r - std::trunc(v)) < 1e-4); };
     d.off = [f, key, map_key]() {
         uintptr_t b; Prop p; double ov = 0; bool have = false; std::string ev;
         auto it = g_cfg_orig.find(key); if (it != g_cfg_orig.end()) { ov = it->second; have = true; } else if (env_get("DK_CFG_" + key, ev)) { ov = atof(ev.c_str()); have = true; }
@@ -852,10 +854,17 @@ static void build_defs() {
     { Def d; d.id = "grid_unlock"; d.name = "Unlock every grid cell"; d.kind = "toggle"; d.def = 1;
       d.apply = [](double) { return grid_sync(); }; d.off = []() { grid_sync(); }; g_defs.push_back(d); }
     g_defs.push_back(attr_value_uncapped("dodge_distance", "Dodge distance x", "DodgeDistanceMultiplier", 2));
-    g_defs.push_back(attr_value("attack_speed", "Attack / animation speed x", "AnimSpeedMultiplier", 2));
+    // 1.7.79 caps AnimSpeedMultiplier (3.0 is undone, 2.5 holds) -> uncapped like area_size/cdr
+    g_defs.push_back(attr_value_uncapped("attack_speed", "Attack / animation speed x", "AnimSpeedMultiplier", 2));
     g_defs.push_back(attr_value("extra_projectiles", "Extra projectiles", "ProjectileCountBonus", 3));
-    g_defs.push_back(attr_value("area_size", "Skill area size x", "AreaSizeMultiplier", 2));
-    g_defs.push_back(attr_value("cdr", "Cooldown reduction (0-1)", "CooldownReductionPercent", 0.5));
+    // 1.7.79 (2026-11-12) added caps: AreaSizeMultiplier max 3.0, CooldownReductionPercent max 0.75 -> lift them like dodge
+    g_defs.push_back(attr_value_uncapped("area_size", "Skill area size x", "AreaSizeMultiplier", 2));
+    g_defs.push_back(attr_value_uncapped("cdr", "Cooldown reduction (0-1)", "CooldownReductionPercent", 0.5));
+    // Harrower (1.7.79, 2026-11-12): Instability = a wyrmling skill makes its element Unstable for StableElementDuration
+    // seconds (game default 5); all four elements Unstable = Unleashed (HnSHarrowerGimmickComponent Harmony effects).
+    // Long duration -> once every element was triggered, Unleashed stays on. StableDamageMult = the Unstable damage bonus.
+    g_defs.push_back(attr_value_uncapped("unstable_time", "Unstable duration (s)", "StableElementDuration", 60));
+    g_defs.push_back(attr_value_uncapped("unstable_damage", "Unstable damage x", "StableDamageMult", 2));
     g_defs.push_back(attr_value("lifesteal", "Lifesteal (0-1)", "LifestealPercent", 0.2));
     g_defs.push_back(attr_value("health_regen", "Health regen", "HealthRegen", 50));
     g_defs.push_back(attr_value("gold_mult", "Gold multiplier", "ExtraGoldMultiplier", 5));

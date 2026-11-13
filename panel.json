@@ -339,7 +339,7 @@
       {
        "id": "frag_drop_attr",
        "type": "slider",
-       "label": "Fragment drop stat (game multiplier)",
+       "label": "Fragment drop stat x",
        "feature": "frag_drop_attr",
        "min": 1,
        "max": 50,
@@ -351,7 +351,7 @@
       {
        "id": "frag_quality_attr",
        "type": "slider",
-       "label": "Fragment quality stat (game multiplier)",
+       "label": "Fragment quality stat x",
        "feature": "frag_quality_attr",
        "min": 1,
        "max": 50,
@@ -714,6 +714,35 @@
        "step": 5,
        "off": 1,
        "default": 1
+      }
+     ]
+    },
+    {
+     "name": "Harrower",
+     "items": [
+      {
+       "id": "unstable_time",
+       "type": "slider",
+       "label": "Unstable duration (s)",
+       "feature": "unstable_time",
+       "min": 5,
+       "max": 600,
+       "step": 5,
+       "off": 5,
+       "default": 5,
+       "desc": "Harrower: how long an element stays Unstable after a wyrmling skill (game: 5 s). Keep all four Unstable to stay Unleashed."
+      },
+      {
+       "id": "unstable_damage",
+       "type": "slider",
+       "label": "Unstable damage x",
+       "feature": "unstable_damage",
+       "min": 1.1,
+       "max": 10,
+       "step": 0.1,
+       "off": 1.1,
+       "default": 1.1,
+       "desc": "Harrower: damage multiplier while an element is Unstable (game: 1.1)."
       }
      ]
     }

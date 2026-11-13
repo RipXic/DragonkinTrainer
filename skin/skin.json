@@ -1,0 +1,219 @@
+{
+ "version": 1,
+ "style": "dragon",
+ "pieces": {
+  "tab_active": {
+   "kind": "3slice",
+   "w": 232,
+   "h": 65,
+   "l": 20,
+   "r": 20
+  },
+  "tab": {
+   "kind": "3slice",
+   "w": 232,
+   "h": 65,
+   "l": 20,
+   "r": 20
+  },
+  "row": {
+   "kind": "3slice",
+   "w": 765,
+   "h": 66,
+   "l": 18,
+   "r": 14
+  },
+  "check_on": {
+   "kind": "image",
+   "w": 47,
+   "h": 47
+  },
+  "check_off": {
+   "kind": "image",
+   "w": 47,
+   "h": 47
+  },
+  "valbox": {
+   "kind": "3slice",
+   "w": 208,
+   "h": 47,
+   "l": 14,
+   "r": 40
+  },
+  "valbox_plain": {
+   "kind": "3slice",
+   "w": 208,
+   "h": 47,
+   "l": 14,
+   "r": 14
+  },
+  "button": {
+   "kind": "3slice",
+   "w": 203,
+   "h": 49,
+   "l": 18,
+   "r": 18
+  },
+  "badge": {
+   "kind": "3slice",
+   "w": 82,
+   "h": 43,
+   "l": 12,
+   "r": 12
+  },
+  "ico_helmet": {
+   "kind": "image",
+   "w": 60,
+   "h": 60
+  },
+  "ico_swords": {
+   "kind": "image",
+   "w": 60,
+   "h": 60
+  },
+  "ico_wing": {
+   "kind": "image",
+   "w": 60,
+   "h": 60
+  },
+  "ico_chest": {
+   "kind": "image",
+   "w": 60,
+   "h": 60
+  },
+  "ico_triquetra": {
+   "kind": "image",
+   "w": 60,
+   "h": 60
+  },
+  "ico_globe": {
+   "kind": "image",
+   "w": 60,
+   "h": 60
+  },
+  "ico_coins": {
+   "kind": "image",
+   "w": 60,
+   "h": 60
+  },
+  "ico_gear": {
+   "kind": "image",
+   "w": 60,
+   "h": 60
+  },
+  "ico_row_heart": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "ico_row_flame": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "ico_row_bolt": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "ico_row_swords2": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "ico_row_trident": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "ico_row_coins2": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "ico_row_magnet": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "ico_row_runner": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "ico_row_swirl": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "ico_row_skull": {
+   "kind": "image",
+   "w": 44,
+   "h": 44
+  },
+  "bg": {
+   "kind": "image",
+   "w": 1122,
+   "h": 1402
+  }
+ },
+ "layout": {
+  "ref_w": 1122,
+  "ref_h": 1402,
+  "winbtns": [
+   [
+    941,
+    297,
+    997,
+    343
+   ],
+   [
+    1010,
+    297,
+    1063,
+    343
+   ]
+  ],
+  "tabs_x": 40,
+  "tabs_y": 398,
+  "tab_step": 71.4,
+  "tabs_bottom": 968,
+  "tab_w": 232,
+  "tab_h": 65,
+  "header": [
+   320,
+   381,
+   690,
+   417
+  ],
+  "content": [
+   302,
+   448,
+   1062,
+   1146
+  ],
+  "row_h": 62,
+  "row_gap": 8,
+  "status": [
+   160,
+   1250,
+   760,
+   1306
+  ],
+  "version": [
+   930,
+   1256,
+   1060,
+   1302
+  ],
+  "colors": {
+   "gold": 15316044,
+   "gold_hi": 16769952,
+   "text": 15985106,
+   "dim": 11048826,
+   "green": 6021946,
+   "red": 14173482,
+   "title": 15909994
+  }
+ }
+}

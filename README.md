@@ -1,15 +1,15 @@
 # Dragonkin Trainer — source
 
-Source code of **Dragonkin Trainer 1.0.0**, an in-game trainer for *Dragonkin: The Banished* (Steam, game version 1.6.75).
+Source code of **Dragonkin Trainer 1.1.0**, an in-game trainer for *Dragonkin: The Banished* (Steam, game version 1.7.79).
 This is exactly the code of the release on Nexus Mods: `DragonkinTrainer.exe` (the loader) and `native.dll` (the trainer).
 
 Single-player / offline only. Fan-made, not affiliated with Eko Software or Nacon.
 
 ## Download
 - **Nexus Mods:** https://www.nexusmods.com/dragonkinthebanished/mods/10
-- **GitHub release:** https://github.com/RipXic/DragonkinTrainer/releases/tag/v1.0.0 (the same zip)
-- SHA-256 of `DragonkinTrainer_1.0.0.zip`: `02842981041f2a8744f2f4096222d3962ce344e54b22de780f31dfe1753201ec`
-  (check with `Get-FileHash .\DragonkinTrainer_1.0.0.zip` in PowerShell)
+- **GitHub release:** https://github.com/RipXic/DragonkinTrainer/releases/tag/v1.1.0 (the same zip)
+- SHA-256 of `DragonkinTrainer_1.1.0.zip`: `28b451319c8ae142335b1183717d03ac2f050918cfc63a75d7330c683514be7b`
+  (check with `Get-FileHash .\DragonkinTrainer_1.1.0.zip` in PowerShell)
 
 ## What the two files do
 - **DragonkinTrainer.exe** (`loader/loader.cpp`) starts the game through Steam (`steam://rungameid/1863430`), or finds the

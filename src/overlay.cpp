@@ -24,6 +24,8 @@ namespace wb {
 ImFont* g_font_body = nullptr;
 ImFont* g_font_bold = nullptr;
 ImFont* g_font_title = nullptr;
+ImFont* g_font_skin = nullptr;      // painted skin: tabs / headings / row labels (<root>\skin\font.ttf, else Palatino Bold)
+ImFont* g_font_skin_big = nullptr;  // painted skin: page title / version
 float g_ui_scale = 1.f;
 }
 
@@ -129,7 +131,7 @@ static void load_fonts(float k) {
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr;  // layout lives in panel.json
     io.Fonts->Clear();
-    g_font_body = g_font_bold = g_font_title = nullptr;
+    g_font_body = g_font_bold = g_font_title = g_font_skin = g_font_skin_big = nullptr;
     char win[MAX_PATH]; GetWindowsDirectoryA(win, MAX_PATH);
     std::string f = std::string(win) + "\\Fonts\\";
     auto exists = [](const std::string& p) { return GetFileAttributesA(p.c_str()) != INVALID_FILE_ATTRIBUTES; };
@@ -138,9 +140,17 @@ static void load_fonts(float k) {
         g_font_bold = io.Fonts->AddFontFromFileTTF((f + "seguisb.ttf").c_str(), 16.f * k);
         g_font_title = io.Fonts->AddFontFromFileTTF((f + "seguisb.ttf").c_str(), 24.f * k);
     }
+    {   // skin fonts: <root>\skin\font.ttf when present, else Palatino Bold (closest Windows font to the mock-up's serif capitals)
+        std::string sk = g_cfg.root + "\\skin\\font.ttf";
+        if (!exists(sk)) sk = f + "palab.ttf";
+        if (!exists(sk)) sk = f + "georgiab.ttf";
+        if (exists(sk)) { g_font_skin = io.Fonts->AddFontFromFileTTF(sk.c_str(), 22.f * k); g_font_skin_big = io.Fonts->AddFontFromFileTTF(sk.c_str(), 30.f * k); }
+    }
     if (!g_font_body) g_font_body = io.Fonts->AddFontDefault();
     if (!g_font_bold) g_font_bold = g_font_body;
     if (!g_font_title) g_font_title = g_font_bold;
+    if (!g_font_skin) g_font_skin = g_font_bold;
+    if (!g_font_skin_big) g_font_skin_big = g_font_title;
 }
 
 // ------------------------------------------------------------------ toasts
@@ -269,18 +279,31 @@ static void neuter_raw(RAWINPUT* ri) {
         if (!(ri->data.keyboard.Flags & RI_KEY_BREAK)) { ri->data.keyboard.VKey = 0xFF; ri->data.keyboard.MakeCode = 0; }
     }
 }
+// 11-12: typing in a trainer text box (search, values) leaked to the game through RAW keyboard input (B toggled the
+// damage meter): while a trainer text box is active, key presses are dropped there too (releases pass).
+static bool keys_to_panel() {
+    if (!trinity::g_state.menuOpen || g_retired) return false;
+    bool w = false;
+    __try { w = ImGui::GetCurrentContext() && ImGui::GetIO().WantTextInput; } __except (EXCEPTION_EXECUTE_HANDLER) { w = false; }
+    return w;
+}
+static void neuter_raw_keys(RAWINPUT* ri) {
+    if (ri->header.dwType == RIM_TYPEKEYBOARD && !(ri->data.keyboard.Flags & RI_KEY_BREAK)) { ri->data.keyboard.VKey = 0xFF; ri->data.keyboard.MakeCode = 0; }
+}
 static UINT WINAPI hk_GetRawInputData(HRAWINPUT h, UINT cmd, LPVOID data, PUINT size, UINT hdr) {
     UINT r = o_GetRawInputData(h, cmd, data, size, hdr);
     if (cmd == RID_INPUT && data && r != (UINT)-1 && r >= sizeof(RAWINPUTHEADER)) {
-        if (input_blocked()) neuter_raw((RAWINPUT*)data); else if (drag_filter()) neuter_raw_drag((RAWINPUT*)data); }
+        if (input_blocked()) neuter_raw((RAWINPUT*)data); else if (drag_filter()) neuter_raw_drag((RAWINPUT*)data);
+        else if (keys_to_panel()) neuter_raw_keys((RAWINPUT*)data); }
     return r;
 }
 static UINT WINAPI hk_GetRawInputBuffer(PRAWINPUT data, PUINT size, UINT hdr) {
     UINT n = o_GetRawInputBuffer(data, size, hdr);
-    if (data && n != (UINT)-1 && (input_blocked() || drag_filter())) {
-        const bool full = input_blocked();
+    const bool keys = data && n != (UINT)-1 && !input_blocked() && !drag_filter() && keys_to_panel();
+    if (data && n != (UINT)-1 && (input_blocked() || drag_filter() || keys)) {
+        const bool full = input_blocked(), drag = !full && drag_filter();
         RAWINPUT* ri = data;
-        for (UINT i = 0; i < n; ++i) { if (full) neuter_raw(ri); else neuter_raw_drag(ri); ri = NEXTRAWINPUTBLOCK(ri); }
+        for (UINT i = 0; i < n; ++i) { if (full) neuter_raw(ri); else if (drag) neuter_raw_drag(ri); else neuter_raw_keys(ri); ri = NEXTRAWINPUTBLOCK(ri); }
     }
     return n;
 }

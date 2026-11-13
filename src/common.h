@@ -26,7 +26,10 @@ using json = nlohmann::json;
 
 namespace wb {
 
-constexpr const char* kVersion = "0.1.1";
+#include "../res/version.h"   // the ONE place the trainer version lives (also file Properties, INSTALL.txt): bump it per release
+#define WB_STR2(x) #x
+#define WB_STR(x) WB_STR2(x)
+constexpr const char* kVersion = WB_STR(VER_MAJOR) "." WB_STR(VER_MINOR) "." WB_STR(VER_PATCH);   // panel shows "v" + this
 constexpr const char* kGameExe = "DragonkinTheBanished-Win64-Shipping.exe";
 
 struct Config {

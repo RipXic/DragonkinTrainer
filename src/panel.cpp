@@ -37,6 +37,8 @@
 #include <ctime>
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "trinity/gui/icons.h"   // DrawItemIcon (painted skin pieces, skin.cpp)
+#include <array>
 
 // what the Lua side is called in the UI (public build: plain words, no developer terms)
 #define LINK "Game connected"
@@ -102,6 +104,7 @@ static int64_t g_seq = 0;
 static uint64_t g_written = 0;          // req.json files written this session
 static std::string g_status;            // last action result (footer)
 static bool g_status_ok = true;
+static bool g_skin_classic = false, g_skin_reload = false;   // painted skin: Settings > Display > Classic look
 static ULONGLONG g_status_at = 0;
 static std::atomic<bool> g_worker_on{false};
 static bool g_force_state = false;     // re-read state.json even if unchanged (after a spec reload)
@@ -628,6 +631,12 @@ static void draw_settings_tab() {
         char b[64]; sprintf_s(b, "Panel scale %.2fx", g_settings.ui_scale); settings_commit(b);
     }
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Applies when you let go. Right-click: back to 1.00x");
+    {   ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Classic look");
+        ImGui::SameLine(S(190));
+        bool cl = g_skin_classic;
+        if (toggle_switch("##classic", &cl)) { g_skin_classic = cl; g_skin_reload = true; settings_commit(cl ? "Classic look on" : "Painted Dragonkin look on"); }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Off: the painted Dragonkin panel (skin folder). On: the plain panel. Switching also reloads skin.json."); }
 
 
     section_header("About");
@@ -707,6 +716,11 @@ static std::string gear_name(const std::string& tag) {   // last 2-3 tag parts
     std::vector<std::string> parts; size_t a = 0;
     while (a <= tag.size()) { size_t b = tag.find('.', a); if (b == std::string::npos) b = tag.size(); if (b > a) parts.push_back(tag.substr(a, b - a)); a = b + 1; }
     if (parts.empty()) return tag;
+    if (parts.size() >= 6 && parts[0] == "Items" && parts[1] == "Equipment") {   // Items.Equipment.Harrower.01.01.RightHand
+        std::string slot;
+        for (char c : parts.back()) { if (isupper((unsigned char)c) && !slot.empty()) slot += ' '; slot += c; }
+        return parts[2] + " " + slot + " (" + parts[3] + "." + parts[4] + ")";
+    }
     const size_t take = parts.size() >= 4 ? 3 : std::min<size_t>(2, parts.size());
     std::string out;
     for (size_t i = parts.size() - take; i < parts.size(); ++i) out += (out.empty() ? "" : " ") + parts[i];
@@ -1056,7 +1070,7 @@ static void draw_fragments(bool online) {
     if (!g_frags_loaded) { if (!call_busy(g_frags_seq)) text_dim(online ? "Press REFRESH to read your fragments from the game." : LINK_OFF ".", ui::kDim); else loading_line("Fragments"); return; }
     const std::string flt = lower(g_ffilter);
     const float avail_h = ImGui::GetContentRegionAvail().y;
-    ImGui::BeginChild("##flist", ImVec2(S(330), avail_h), ImGuiChildFlags_Borders);
+    ImGui::BeginChild("##flist", ImVec2(std::min(S(330), ImGui::GetContentRegionAvail().x * 0.42f), avail_h), ImGuiChildFlags_Borders);
     int shown = 0;
     for (auto& f : g_frags) {
         if (!frag_matches(f, flt)) continue;
@@ -1355,7 +1369,7 @@ static void draw_gear(bool online) {
     if (!g_gear_loaded) { if (!call_busy(g_gear_seq)) text_dim(online ? "Press REFRESH to read your gear from the game." : LINK_OFF ".", ui::kDim); else loading_line("Gear"); return; }
     const std::string flt = lower(g_gfilter);
     const float avail_h = ImGui::GetContentRegionAvail().y;
-    ImGui::BeginChild("##glist", ImVec2(S(330), avail_h), ImGuiChildFlags_Borders);
+    ImGui::BeginChild("##glist", ImVec2(std::min(S(330), ImGui::GetContentRegionAvail().x * 0.42f), avail_h), ImGuiChildFlags_Borders);
     int shown = 0, group = -1;
     for (auto& g : g_gear) {
         if (!gear_matches(g, flt)) continue;
@@ -1447,12 +1461,12 @@ static void draw_talents(bool online) {
         ImGui::PushFont(g_font_bold);
         colored(t.name, rank >= nr && nr ? ui::kGold : rank > 0 ? ui::kGreen : ui::kBone);
         ImGui::PopFont();
-        ImGui::SameLine(S(250));
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextDisabled("rank %d / %d  |  %d pts  (gear %d%s)", rank, nr, t.total, t.gear, t.extra ? (", trainer +" + std::to_string(t.extra)).c_str() : "");
-        // OFF / I / II / III: the trainer's extra points needed to reach that rank's threshold on top of the gear
+        // OFF / I / II / III: the trainer's extra points needed to reach that rank's threshold on top of the gear.
+        // Buttons sit on the name line, the rank text on its own line below (the skin's content area is narrow).
         static const char* roman[] = { "I", "II", "III", "IV", "V" };
-        ImGui::SameLine(ImGui::GetContentRegionMax().x - S(54) * (nr + 1));
+        const float bx = ImGui::GetContentRegionMax().x - S(54) * (nr + 1);
+        if (ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + S(8) < bx) ImGui::SameLine(bx);
+        else ImGui::SetCursorPosX(bx);
         const bool off_sel = t.extra == 0;
         if (off_sel) ImGui::BeginDisabled();
         if (ImGui::Button("OFF", ImVec2(S(50), 0)) && online) set_talent(t.tag, 0);
@@ -1466,6 +1480,7 @@ static void draw_talents(bool online) {
             if (cur) ImGui::PopStyleColor();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Rank %s needs %d points (gear gives %d, the trainer adds %d)", roman[k], t.floors[k], t.gear, want);
         }
+        ImGui::TextDisabled("rank %d / %d  |  %d pts  (gear %d%s)", rank, nr, t.total, t.gear, t.extra ? (", trainer +" + std::to_string(t.extra)).c_str() : "");
         if (!t.desc.empty()) { ImGui::PushTextWrapPos(ImGui::GetContentRegionMax().x - S(8)); text_dim(t.desc, ui::kDim); ImGui::PopTextWrapPos(); }
         ImGui::Dummy(ImVec2(0, S(6)));
         ImGui::PopID();
@@ -1482,12 +1497,15 @@ static void draw_editor(bool online) {
 
 } // namespace ed
 
+#include "panel_skin.inc"   // painted Dragonkin panel (skin_src -> tools\make_skin_dragon.py -> bin\skin)
+
 void panel_draw(bool* visible) {
     std::lock_guard<std::recursive_mutex> lk(g_mtx);
     g_drag_id.clear();
     const bool online = lua_online();
     const bool dev = developer_mode();
     PanelScale scale_scope(std::clamp(g_settings.ui_scale, 0.75f, 1.5f));
+    if (sk::on()) { panel_draw_skin(visible, online, dev); return; }
     { const ImVec2 ds = ImGui::GetIO().DisplaySize;
       ImGui::SetNextWindowSize(ImVec2(std::max(S(980), std::min(ds.x * 0.55f, S(1700))), std::max(S(700), ds.y * 0.82f)), ImGuiCond_Once); }
     ImGui::SetNextWindowPos(ImVec2(S(60), S(70)), ImGuiCond_FirstUseEver);
