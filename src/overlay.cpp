@@ -202,10 +202,20 @@ static void cam_drag_end(HWND h) {
     if (GetCapture() == h) ReleaseCapture();
     if (g_scp) g_scp(g_camDragPt.x, g_camDragPt.y); else SetCursorPos(g_camDragPt.x, g_camDragPt.y);   // cursor back where the drag began
 }
+// 11-13: a key whose PRESS the panel swallowed must not hand its RELEASE to the game either - the game acts on some
+// keys when they are released (B = damage meter toggled while typing "b" in the search box). Releases of keys the game
+// did see still pass, so nothing stays held. One table per path: window messages and raw input see the same key twice.
+static bool g_msg_swallowed[256] = {};
+static bool g_raw_swallowed[256] = {};
 static LRESULT CALLBACK hk_WndProc(HWND h, UINT m, WPARAM w, LPARAM l) {
     // the game is closing: stop every game call from the trainer (a call during engine shutdown can request an asset
     // load, which is fatal after shutdown - crash at exit, 2026-11-09)
     if (m == WM_CLOSE || m == WM_DESTROY || m == WM_QUIT || m == WM_ENDSESSION) g_game_exiting = true;
+    if ((m == WM_KEYUP || m == WM_SYSKEYUP) && g_msg_swallowed[w & 0xFF]) {   // release of a press the game never saw
+        g_msg_swallowed[w & 0xFF] = false;
+        if (!g_retired && trinity::g_state.menuOpen) { __try { ImGui_ImplWin32_WndProcHandler(h, m, w, l); } __except (EXCEPTION_EXECUTE_HANDLER) {} }
+        return 0;
+    }
     if (g_retired || !trinity::g_state.menuOpen) { if (g_camDrag) cam_drag_end(h); return CallWindowProcW(o_WndProc, h, m, w, l); }
     // 11-06 camera drag: a left/right press RIGHT of the transmog page starts it; the press itself never reaches the game (no
     // attack), raw mouse movement does (the game turns the camera) until the button is released.
@@ -237,8 +247,10 @@ static LRESULT CALLBACK hk_WndProc(HWND h, UINT m, WPARAM w, LPARAM l) {
     bool is_key = m >= WM_KEYFIRST && m <= WM_KEYLAST;
     // key releases always reach the game so nothing stays held after the panel closes
     bool is_release = m == WM_KEYUP || m == WM_SYSKEYUP;
-    if (g_cfg.lock_input && (is_mouse || (is_key && !is_release))) return 0;
-    if ((is_mouse && want_mouse) || (is_key && want_keys && !is_release)) return 0;
+    const bool is_press = m == WM_KEYDOWN || m == WM_SYSKEYDOWN;
+    if (is_key && !is_release && (g_cfg.lock_input || want_keys)) { if (is_press) g_msg_swallowed[w & 0xFF] = true; return 0; }
+    if (g_cfg.lock_input && is_mouse) return 0;
+    if (is_mouse && want_mouse) return 0;
     if (m == WM_INPUT && (g_cfg.lock_input || want_mouse)) return DefWindowProcW(h, m, w, l);
     if (m == WM_SETCURSOR) return TRUE;
     return CallWindowProcW(o_WndProc, h, m, w, l);
@@ -259,13 +271,24 @@ static BOOL WINAPI hk_SetCursorPos(int x, int y) { if (input_blocked()) return T
 
 static BOOL WINAPI hk_ClipCursor(const RECT* r) { if (input_blocked() && r) return o_ClipCursor(nullptr); return o_ClipCursor(r); }
 
+// raw keyboard: drop_press = drop a key press (and remember it); a release is dropped only when its press was dropped
+static void raw_key(RAWINPUT* ri, bool drop_press) {
+    if (ri->header.dwType != RIM_TYPEKEYBOARD) return;
+    const unsigned vk = ri->data.keyboard.VKey & 0xFF;
+    if (!(ri->data.keyboard.Flags & RI_KEY_BREAK)) {
+        if (!drop_press) return;
+        g_raw_swallowed[vk] = true;
+    } else {
+        if (!g_raw_swallowed[vk]) return;
+        g_raw_swallowed[vk] = false;
+    }
+    ri->data.keyboard.VKey = 0xFF; ri->data.keyboard.MakeCode = 0;
+}
 static void neuter_raw_drag(RAWINPUT* ri) {   // camera drag: keep mouse movement, drop every press (mouse + keys) and the wheel
     if (ri->header.dwType == RIM_TYPEMOUSE) {
         USHORT up = RI_MOUSE_LEFT_BUTTON_UP | RI_MOUSE_RIGHT_BUTTON_UP | RI_MOUSE_MIDDLE_BUTTON_UP | RI_MOUSE_BUTTON_4_UP | RI_MOUSE_BUTTON_5_UP;
         ri->data.mouse.usButtonFlags &= up; ri->data.mouse.usButtonData = 0;
-    } else if (ri->header.dwType == RIM_TYPEKEYBOARD) {
-        if (!(ri->data.keyboard.Flags & RI_KEY_BREAK)) { ri->data.keyboard.VKey = 0xFF; ri->data.keyboard.MakeCode = 0; }
-    }
+    } else raw_key(ri, true);
 }
 static bool drag_filter() { return g_camDrag && trinity::g_state.menuOpen && !g_retired; }
 static void neuter_raw(RAWINPUT* ri) {
@@ -275,9 +298,7 @@ static void neuter_raw(RAWINPUT* ri) {
         USHORT up = RI_MOUSE_LEFT_BUTTON_UP | RI_MOUSE_RIGHT_BUTTON_UP | RI_MOUSE_MIDDLE_BUTTON_UP | RI_MOUSE_BUTTON_4_UP | RI_MOUSE_BUTTON_5_UP;
         ri->data.mouse.usButtonFlags &= up;
         ri->data.mouse.usButtonData = 0;
-    } else if (ri->header.dwType == RIM_TYPEKEYBOARD) {
-        if (!(ri->data.keyboard.Flags & RI_KEY_BREAK)) { ri->data.keyboard.VKey = 0xFF; ri->data.keyboard.MakeCode = 0; }
-    }
+    } else raw_key(ri, true);
 }
 // 11-12: typing in a trainer text box (search, values) leaked to the game through RAW keyboard input (B toggled the
 // damage meter): while a trainer text box is active, key presses are dropped there too (releases pass).
@@ -287,23 +308,21 @@ static bool keys_to_panel() {
     __try { w = ImGui::GetCurrentContext() && ImGui::GetIO().WantTextInput; } __except (EXCEPTION_EXECUTE_HANDLER) { w = false; }
     return w;
 }
-static void neuter_raw_keys(RAWINPUT* ri) {
-    if (ri->header.dwType == RIM_TYPEKEYBOARD && !(ri->data.keyboard.Flags & RI_KEY_BREAK)) { ri->data.keyboard.VKey = 0xFF; ri->data.keyboard.MakeCode = 0; }
+static void filter_raw(RAWINPUT* ri) {
+    if (input_blocked()) neuter_raw(ri);
+    else if (drag_filter()) neuter_raw_drag(ri);
+    else raw_key(ri, keys_to_panel());   // typing in a trainer box: drop presses; otherwise only releases of dropped presses
 }
 static UINT WINAPI hk_GetRawInputData(HRAWINPUT h, UINT cmd, LPVOID data, PUINT size, UINT hdr) {
     UINT r = o_GetRawInputData(h, cmd, data, size, hdr);
-    if (cmd == RID_INPUT && data && r != (UINT)-1 && r >= sizeof(RAWINPUTHEADER)) {
-        if (input_blocked()) neuter_raw((RAWINPUT*)data); else if (drag_filter()) neuter_raw_drag((RAWINPUT*)data);
-        else if (keys_to_panel()) neuter_raw_keys((RAWINPUT*)data); }
+    if (cmd == RID_INPUT && data && r != (UINT)-1 && r >= sizeof(RAWINPUTHEADER)) filter_raw((RAWINPUT*)data);
     return r;
 }
 static UINT WINAPI hk_GetRawInputBuffer(PRAWINPUT data, PUINT size, UINT hdr) {
     UINT n = o_GetRawInputBuffer(data, size, hdr);
-    const bool keys = data && n != (UINT)-1 && !input_blocked() && !drag_filter() && keys_to_panel();
-    if (data && n != (UINT)-1 && (input_blocked() || drag_filter() || keys)) {
-        const bool full = input_blocked(), drag = !full && drag_filter();
+    if (data && n != (UINT)-1) {
         RAWINPUT* ri = data;
-        for (UINT i = 0; i < n; ++i) { if (full) neuter_raw(ri); else if (drag) neuter_raw_drag(ri); else neuter_raw_keys(ri); ri = NEXTRAWINPUTBLOCK(ri); }
+        for (UINT i = 0; i < n; ++i) { filter_raw(ri); ri = NEXTRAWINPUTBLOCK(ri); }
     }
     return n;
 }
