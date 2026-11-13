@@ -1,9 +1,17 @@
 # Dragonkin Trainer — source
 
+[![Discord: RipXic Mods](https://img.shields.io/badge/Discord-RipXic%20Mods-5865F2?logo=discord&logoColor=white)](https://discord.gg/ZwrWMdJfFW)
+[![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-Dragonkin%20Trainer-DA8E35)](https://www.nexusmods.com/dragonkinthebanished/mods/10)
+[![Latest release](https://img.shields.io/github/v/release/RipXic/DragonkinTrainer?label=latest)](https://github.com/RipXic/DragonkinTrainer/releases/latest)
+
 Source code of **Dragonkin Trainer 1.1.0**, an in-game trainer for *Dragonkin: The Banished* (Steam, game version 1.7.79).
 This is exactly the code of the release on Nexus Mods: `DragonkinTrainer.exe` (the loader) and `native.dll` (the trainer).
 
 Single-player / offline only. Fan-made, not affiliated with Eko Software or Nacon.
+
+## Community
+Questions, bug reports, feature ideas and update news: join the **[RipXic Mods Discord](https://discord.gg/ZwrWMdJfFW)**.
+Pick the **Mod Updates** role there to get a ping for every new version.
 
 ## Download
 - **Nexus Mods:** https://www.nexusmods.com/dragonkinthebanished/mods/10
