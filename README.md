@@ -1,6 +1,6 @@
 # Dragonkin Trainer — source
 
-Source code of **Dragonkin Trainer 1.1.1**, an in-game trainer for *Dragonkin: The Banished* (Steam, game version 1.7.79).
+Source code of **Dragonkin Trainer 1.1.0**, an in-game trainer for *Dragonkin: The Banished* (Steam, game version 1.7.79).
 This is exactly the code of the release on Nexus Mods: `DragonkinTrainer.exe` (the loader) and `native.dll` (the trainer).
 
 Single-player / offline only. Fan-made, not affiliated with Eko Software or Nacon.
@@ -11,12 +11,11 @@ Single-player / offline only. Fan-made, not affiliated with Eko Software or Naco
 
 | Version | Game version | Release | SHA-256 of the zip |
 |---|---|---|---|
-| **1.1.1** (latest) | 1.7.79 (Harrower update) | [v1.1.1](https://github.com/RipXic/DragonkinTrainer/releases/tag/v1.1.1) | `a35ea3342034ce8dde084e7a638bdb93ebb261dd8efff826d1847e77d96910fd` |
-| 1.1.0 | 1.7.79 (Harrower update) | [v1.1.0](https://github.com/RipXic/DragonkinTrainer/releases/tag/v1.1.0) | `28b451319c8ae142335b1183717d03ac2f050918cfc63a75d7330c683514be7b` |
+| **1.1.0** (latest) | 1.7.79 (Harrower update) | [v1.1.0](https://github.com/RipXic/DragonkinTrainer/releases/tag/v1.1.0) | `b3afecdc294c5fdac00541e90fb356e777285456faf51142892ecded5bbc6bc6` |
 | 1.0.0 | 1.6.75 | [v1.0.0](https://github.com/RipXic/DragonkinTrainer/releases/tag/v1.0.0) | `02842981041f2a8744f2f4096222d3962ce344e54b22de780f31dfe1753201ec` |
 
-Check a zip with `Get-FileHash .\DragonkinTrainer_1.1.1.zip` in PowerShell. This repository holds the latest source;
-older versions are at their tags (`v1.1.0`, `v1.0.0`).
+Check a zip with `Get-FileHash .\DragonkinTrainer_1.1.0.zip` in PowerShell. This repository holds the latest source;
+the 1.0.0 source is at the `v1.0.0` tag.
 
 ## What the two files do
 - **DragonkinTrainer.exe** (`loader/loader.cpp`) starts the game through Steam (`steam://rungameid/1863430`), or finds the

@@ -1,4 +1,4 @@
-DRAGONKIN TRAINER 1.1.1
+DRAGONKIN TRAINER 1.1.0
 Single-player / offline only. In a co-op session every cheat switches itself off.
 
 REQUIREMENTS
