@@ -4,22 +4,16 @@ Single-player / offline only. In a co-op session every cheat switches itself off
 REQUIREMENTS
   Windows 10 or 11 (64-bit) and Dragonkin: The Banished on Steam. Nothing else - no mod loader, no extra runtimes.
 
-INSTALL - pick ONE of the two ways
+INSTALL
+  1. Open the game's Win64 folder: in Steam right-click the game > Manage > Browse local files,
+     then open DragonkinTheBanished\Binaries\Win64 (the folder with DragonkinTheBanished-Win64-Shipping.exe).
+  2. Copy dsound.dll AND the DragonkinTrainer folder from this zip into it.
+  3. Start the game from Steam as usual. The game loads the trainer by itself - there is nothing else to run.
 
-  A) DROP-IN (recommended): the game loads the trainer by itself
-     1. Open the game's Win64 folder: in Steam right-click the game > Manage > Browse local files,
-        then open DragonkinTheBanished\Binaries\Win64 (the folder with DragonkinTheBanished-Win64-Shipping.exe).
-     2. Copy dsound.dll AND the DragonkinTrainer folder from this zip into it.
-     3. Start the game from Steam as usual. The trainer loads with the game.
-     Uninstall: delete dsound.dll and the DragonkinTrainer folder from Win64.
-     Play without the trainer: rename dsound.dll (for example to dsound.dll.off).
-     If another mod you use also has a dsound.dll, use way B instead.
-
-  B) SEPARATE PROGRAM: nothing goes into the game folder
-     1. Put the DragonkinTrainer folder anywhere you like (you do not need dsound.dll for this way).
-     2. Run DragonkinTrainer\DragonkinTrainer.exe. It starts the game through Steam and loads the trainer.
-        (If the game is already running, it attaches to it.)
-     Uninstall: delete the folder. Starting the game from Steam alone runs it without the trainer.
+UNINSTALL
+  Delete dsound.dll and the DragonkinTrainer folder from Win64.
+  Play without the trainer for a while: rename dsound.dll (for example to dsound.dll.off).
+  Another mod that also uses a dsound.dll cannot be installed at the same time.
 
 PLAY
   Load your character and press INSERT to open the trainer. Change the key on the SETTINGS page.

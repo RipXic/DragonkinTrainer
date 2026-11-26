@@ -1,6 +1,7 @@
 @echo off
 rem Dragonkin Trainer - build from source (Visual Studio 2022 or newer, "Desktop development with C++", x64).
-rem Output: bin\DragonkinTrainer.exe + bin\native.dll + bin\dsound.dll + bin\panel.json + bin\skin
+rem Output: bin\dsound.dll + bin\native.dll + bin\panel.json + bin\skin
+rem Install: dsound.dll goes into the game's Binaries\Win64, the rest into Binaries\Win64\DragonkinTrainer\
 setlocal
 set ROOT=%~dp0
 set TP=%ROOT%third_party
@@ -26,19 +27,16 @@ cl %FLAGS% %INC% /c /Fo"%OBJ%\\" "%ROOT%src\core.cpp" "%ROOT%src\overlay.cpp" "%
 
 echo === version resources
 rc /nologo /i "%ROOT%res" /fo "%OBJ%\dll_version.res" "%ROOT%res\dll.rc" || exit /b 1
-rc /nologo /i "%ROOT%res" /fo "%OBJ%\loader_version.res" "%ROOT%res\loader.rc" || exit /b 1
 
 echo === link native.dll
 link /nologo /DLL /OUT:"%OUT%\native.dll" "%OBJ%\*.obj" "%OBJ%\dll_version.res" user32.lib gdi32.lib psapi.lib ws2_32.lib d3d12.lib dxgi.lib dwmapi.lib imm32.lib version.lib d3dcompiler.lib xinput9_1_0.lib hid.lib setupapi.lib ole32.lib windowscodecs.lib shell32.lib advapi32.lib || exit /b 1
 
-echo === DragonkinTrainer.exe
-cl /nologo /O2 /MT /EHsc /std:c++17 /DUNICODE /D_UNICODE /DWB_PUBLIC=1 "%ROOT%loader\loader.cpp" /Fo"%OBJ%\..\loader.obj" /Fe"%OUT%\DragonkinTrainer.exe" /link "%OBJ%\loader_version.res" user32.lib shell32.lib || exit /b 1
-echo === dsound.dll (drop-in loader: the game loads it, it loads DragonkinTrainer\native.dll)
+echo === dsound.dll (loader: the game loads it, it loads DragonkinTrainer\native.dll)
 rc /nologo /i "%ROOT%res" /fo "%OBJ%\proxy_version.res" "%ROOT%res\proxy.rc" || exit /b 1
 cl /nologo /O2 /MT /EHsc /std:c++17 /DUNICODE /D_UNICODE /DWB_PUBLIC=1 /c "%ROOT%proxy\dsound_proxy.cpp" /Fo"%OBJ%\..\dsound_proxy.obj" || exit /b 1
 link /nologo /DLL /DEF:"%ROOT%proxy\dsound.def" /OUT:"%OUT%\dsound.dll" "%OBJ%\..\dsound_proxy.obj" "%OBJ%\proxy_version.res" kernel32.lib || exit /b 1
 copy /y "%ROOT%panel.json" "%OUT%\panel.json" >nul
 xcopy /e /i /y /q "%ROOT%skin" "%OUT%\skin" >nul
-echo BUILD OK - bin\DragonkinTrainer.exe, bin\native.dll, bin\dsound.dll, bin\panel.json, bin\skin
+echo BUILD OK - bin\dsound.dll, bin\native.dll, bin\panel.json, bin\skin
 endlocal
 exit /b 0
