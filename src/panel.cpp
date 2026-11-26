@@ -453,6 +453,15 @@ static void text_dim(const std::string& s, uint32_t col = ui::kDim) {
     ImGui::PopTextWrapPos(); ImGui::PopStyleColor();
 }
 
+// 11-16: next item on the same line if `w` still fits after the last item, else on a new line at `indent`
+// (the painted skin's editor pane is narrow: side-by-side rows used to push buttons off the edge - Discord report)
+static void same_line_or_wrap(float w, float indent = 0.f, float gap = -1.f) {
+    if (gap < 0) gap = S(10);
+    const float used = ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + ImGui::GetScrollX();
+    if (used + gap + w <= ImGui::GetWindowContentRegionMax().x) ImGui::SameLine(0, gap);
+    else if (indent > 0) { ImGui::Dummy(ImVec2(0, 0)); ImGui::SameLine(indent); }
+}
+
 static void draw_item(Item& it) {
     const ULONGLONG now = GetTickCount64();
     const bool online = lua_online();
@@ -617,6 +626,32 @@ static void draw_settings_tab() {
         if (ui::primary("Reset to INSERT##hkr", S(180), bh)) { g_settings.hotkey = Hotkey(); settings_commit("Panel hotkey reset to INSERT"); }
     }
     kv_row("Controller", "LB + D-pad Down opens / closes the panel, Start closes it");
+
+    // 2026-11-14 trainer report (report.cpp): one button -> data\reports\trainer_report_<time>.txt + clipboard, for the
+    // Discord support channel (the bot reads the verdict and the BOT DATA block, files it per game, flags trainer problems).
+    section_header("Support");
+    {   static std::string rep_path, rep_verdict; static ULONGLONG rep_at = 0;
+        text_dim("Something not working? Make a trainer report and post it in the support channel on Discord. It checks the "
+                 "trainer, lists any errors and says whether the problem is the trainer or something else. Your user name and "
+                 "folders are removed. Load your character first for a complete report.", ui::kDim);
+        ImGui::Dummy(ImVec2(0, S(2)));
+        if (ui::primary("Create trainer report##rep", S(230), bh)) {
+            std::string path; const std::string text = report_create(&path);
+            const size_t a = text.find('\n') + 1, b = text.find('\n', a);
+            rep_verdict = text.substr(a, b - a); rep_path = path; rep_at = GetTickCount64();
+            const bool clip = clipboard_set(text);
+            settings_commit(clip ? "Trainer report made and copied - paste it on Discord" : "Trainer report made (copy it from the file)");
+        }
+        if (!rep_path.empty()) {
+            ImGui::SameLine();
+            if (ui::primary("Show the file##repshow", S(170), bh)) show_in_explorer(rep_path);
+            const bool bad = rep_verdict.rfind("TRAINER PROBLEM", 0) == 0, chk = rep_verdict.rfind("TRAINER CHECK", 0) == 0;
+            ImGui::Dummy(ImVec2(0, S(2)));
+            text_dim(rep_verdict, bad ? ui::kRed : chk ? ui::kAmber : ui::kGreen);
+            text_dim("Saved as " + rep_path.substr(rep_path.find_last_of("\\/") + 1) + " and copied to the clipboard. Paste it in the "
+                     "support channel (Discord turns a long paste into a file), or drag the file in.", ui::kDim);
+        }
+    }
 
     section_header("Display");
     ImGui::AlignTextToFramePadding();
@@ -1046,9 +1081,13 @@ static void draw_frag_slot(Frag& f, int si, bool online) {
         ImGui::SetNextItemWidth(S(180));
         ImGui::Combo("##rar", &u.rarity, kRar, 5);
         // divine: does not stick on fragments
-        ImGui::SameLine(0, S(16));
+        same_line_or_wrap(S(80), lw, S(16));
         ImGui::BeginDisabled(true); bool dv = s.divine; ImGui::Checkbox("Divine", &dv); ImGui::EndDisabled();
-        ImGui::SameLine(); ImGui::TextDisabled("(does not stick on fragments)");
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("Divine does not stick on fragments");
+        { const char* hint = "(does not stick on fragments)";
+          const float hw = ImGui::CalcTextSize(hint).x;
+          const float used = ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + ImGui::GetScrollX();
+          if (used + S(8) + hw <= ImGui::GetWindowContentRegionMax().x) { ImGui::SameLine(); ImGui::TextDisabled("%s", hint); } }
         // apply
         ImGui::Dummy(ImVec2(0, S(2)));
         ImGui::BeginDisabled(!online || busy_apply || busy_opts);
@@ -1141,7 +1180,11 @@ static void draw_affix(Gear& g, int ai, bool online) {
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Quality passed to the game's reroll generator (0..10). Right-click: 5");
         // pick any attribute the game allows on this slot
         ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Attribute"); ImGui::SameLine(S(80));
-        ImGui::SetNextItemWidth(std::min(S(300), ImGui::GetContentRegionAvail().x - S(200)));
+        // 11-16 (Discord report): in the painted skin's narrow pane the button after the list was pushed off the edge.
+        // Narrow pane: the list takes the row, GET THIS AFFIX goes under it.
+        const float row_avail = ImGui::GetContentRegionAvail().x;
+        const bool narrow = row_avail < S(140) + S(10) + S(170);
+        ImGui::SetNextItemWidth(narrow ? row_avail - S(4) : std::min(S(300), row_avail - S(180)));
         auto attr_label = [](const AttrOpt& o) {
             return o.has_range ? pretty_attr(o.attr) + "   (" + fnum(o.mn) + " - " + fnum(o.mx) + ")" : pretty_attr(o.attr);
         };
@@ -1159,7 +1202,7 @@ static void draw_affix(Gear& g, int ai, bool online) {
         ImGui::EndDisabled();
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
             ImGui::SetTooltip("Every attribute the game allows on this slot. The range is the normal roll range for this item level.");
-        ImGui::SameLine(0, S(10));
+        if (narrow) { ImGui::Dummy(ImVec2(0, 0)); ImGui::SameLine(S(80)); } else ImGui::SameLine(0, S(10));
         ImGui::BeginDisabled(!online || u.attr_sel < 0 || busy_any);
         if (ui::primary(busy_pick ? "ROLLING...##pick" : "GET THIS AFFIX##pick", S(170), ImGui::GetFrameHeight()))
             pick_gear_attr(g.handle, ai, u.attrs[u.attr_sel].attr, u.quality);
@@ -1284,7 +1327,8 @@ static void draw_ravenous(Gear& g, bool online) {
         if (call_busy(g_rav.choices_seq)) { loading_line("Ravenous weapons"); return; }
         if (g_rav.choices.empty()) { text_dim("No Ravenous weapon for this class and hand."); show_msg("rav"); return; }
         ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Become"); ImGui::SameLine(S(80));
-        ImGui::SetNextItemWidth(std::max(S(120), std::min(S(260), ImGui::GetContentRegionAvail().x - S(190))));   // room for the button
+        { const float av = ImGui::GetContentRegionAvail().x;   // narrow pane: list takes the row, the button goes under it
+          ImGui::SetNextItemWidth(av < S(140) + S(10) + S(170) ? av - S(4) : std::min(S(260), av - S(190))); }
         const char* prev = g_rav.csel >= 0 && g_rav.csel < (int)g_rav.choices.size() ? g_rav.choices[g_rav.csel].first.c_str() : "choose...";
         if (ImGui::BeginCombo("##ravc", prev, ImGuiComboFlags_HeightLarge)) {
             for (int i = 0; i < (int)g_rav.choices.size(); ++i) {
@@ -1295,7 +1339,7 @@ static void draw_ravenous(Gear& g, bool online) {
             }
             ImGui::EndCombo();
         }
-        ImGui::SameLine(0, S(10));
+        same_line_or_wrap(S(170), S(80));
         ImGui::BeginDisabled(!online || g_rav.csel < 0 || call_busy(g_rav.make_seq));
         if (ui::danger(g_rav.make_arm ? "CONFIRM?##ravm" : "MAKE RAVENOUS##ravm", S(170), bh)) {
             if (!g_rav.make_arm) g_rav.make_arm = true; else { g_rav.make_arm = false; rav_make(g.handle, g_rav.choices[g_rav.csel].first); }
@@ -1309,9 +1353,9 @@ static void draw_ravenous(Gear& g, bool online) {
     }
     // already Ravenous
     ImGui::PushFont(g_font_bold); colored(g.rav_name, ui::kRed); ImGui::PopFont();
-    ImGui::SameLine(S(200)); ImGui::AlignTextToFramePadding();
+    same_line_or_wrap(S(130), 0.f, S(16)); ImGui::AlignTextToFramePadding();
     ImGui::TextDisabled("Voracity %s / %d", g.rav_left < 0 ? "?" : std::to_string(g.rav_left).c_str(), g.rav_max);
-    ImGui::SameLine(0, S(12));
+    same_line_or_wrap(S(170), 0.f, S(12));
     ImGui::BeginDisabled(!online || call_busy(g_rav.refill_seq));
     if (ui::primary("REFILL VORACITY##ravr", S(170), bh)) rav_refill(g.handle);
     ImGui::EndDisabled();

@@ -1,26 +1,34 @@
-DRAGONKIN TRAINER 1.1.0
+DRAGONKIN TRAINER 1.2.0
 Single-player / offline only. In a co-op session every cheat switches itself off.
 
 REQUIREMENTS
   Windows 10 or 11 (64-bit) and Dragonkin: The Banished on Steam. Nothing else - no mod loader, no extra runtimes.
 
-INSTALL
-  Unzip this folder anywhere you like (not inside the game folder). Nothing is copied into the game.
-  Keep the files in it together.
+INSTALL - pick ONE of the two ways
+
+  A) DROP-IN (recommended): the game loads the trainer by itself
+     1. Open the game's Win64 folder: in Steam right-click the game > Manage > Browse local files,
+        then open DragonkinTheBanished\Binaries\Win64 (the folder with DragonkinTheBanished-Win64-Shipping.exe).
+     2. Copy dsound.dll AND the DragonkinTrainer folder from this zip into it.
+     3. Start the game from Steam as usual. The trainer loads with the game.
+     Uninstall: delete dsound.dll and the DragonkinTrainer folder from Win64.
+     Play without the trainer: rename dsound.dll (for example to dsound.dll.off).
+     If another mod you use also has a dsound.dll, use way B instead.
+
+  B) SEPARATE PROGRAM: nothing goes into the game folder
+     1. Put the DragonkinTrainer folder anywhere you like (you do not need dsound.dll for this way).
+     2. Run DragonkinTrainer\DragonkinTrainer.exe. It starts the game through Steam and loads the trainer.
+        (If the game is already running, it attaches to it.)
+     Uninstall: delete the folder. Starting the game from Steam alone runs it without the trainer.
 
 PLAY
-  1. Run DragonkinTrainer.exe. It starts the game through Steam and loads the trainer by itself.
-     (If the game is already running, it attaches to it.)
-  2. Load your character and press INSERT to open the trainer. Change the key on the SETTINGS page.
-  3. Cheats you switch on stay on after zone changes, deaths and restarts until you switch them off.
-  Starting the game from Steam alone runs it without the trainer.
-
-UNINSTALL
-  Delete this folder.
+  Load your character and press INSERT to open the trainer. Change the key on the SETTINGS page.
+  Cheats you switch on stay on after zone changes, deaths and restarts until you switch them off.
 
 GOOD TO KNOW
   - Back up your saves before big changes: <game>\DragonkinTheBanished\Saved\SaveGames
-  - trainer.log next to the trainer says what happened if something does not work.
+  - DragonkinTrainer\trainer.log says what happened if something does not work.
+    SETTINGS > Support > Create trainer report makes a report you can post on our Discord.
   - TALENTS page: read what a talent does before you raise it - some talents can hurt you when used wrong.
   - ANCESTRAL GRID: the extra cells do not line up with the grid picture. If you turn the bigger grid off (or play
     without the trainer), fragments in extra cells go floating - they are kept, they just stop counting.

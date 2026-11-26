@@ -178,6 +178,13 @@ void guard_set_external_tx(bool (*fn)());
 void guard_tx_enter();                              // engine-layer detours mark a game commit in flight
 void guard_tx_leave();
 
+// ---- trainer report (report.cpp, both builds): SETTINGS > Support
+void session_begin();                               // data\session.json; notes an unclean previous session in incidents.jsonl
+void session_clean_exit();                          // the game is closing normally
+std::string report_create(std::string* out_path);   // builds + writes data\reports\trainer_report_<time>.txt, returns the text
+bool clipboard_set(const std::string& utf8);
+void show_in_explorer(const std::string& path);
+
 // ---- overlay / panel
 bool install_overlay();
 json overlay_status();

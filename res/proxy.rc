@@ -1,0 +1,31 @@
+#include <winver.h>
+#include "version.h"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    VER_MAJOR,VER_MINOR,VER_PATCH,VER_BUILD
+ PRODUCTVERSION VER_MAJOR,VER_MINOR,VER_PATCH,VER_BUILD
+ FILEFLAGSMASK  0x3fL
+ FILEFLAGS      0x0L
+ FILEOS         VOS_NT_WINDOWS32
+ FILETYPE       VFT_DLL
+ FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName",      VER_PUBLISHER
+            VALUE "FileDescription",  "Dragonkin Trainer drop-in loader - loads the trainer when the game starts and passes sound calls to Windows dsound.dll"
+            VALUE "FileVersion",      VER_STRING
+            VALUE "InternalName",     "dsound"
+            VALUE "LegalCopyright",   VER_COPYRIGHT
+            VALUE "OriginalFilename", "dsound.dll"
+            VALUE "ProductName",      VER_PRODUCT
+            VALUE "ProductVersion",   VER_STRING
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

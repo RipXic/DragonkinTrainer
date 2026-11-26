@@ -371,6 +371,7 @@ static DWORD WINAPI init_thread(LPVOID) {
     }
     g_log_file = _fsopen((g_cfg.root + "\\" + logname + ".log").c_str(), "w", _SH_DENYNO);
     { char nm[64]; sprintf_s(nm, "Local\\nativeActive_%lu", GetCurrentProcessId()); g_active_marker = CreateMutexA(nullptr, FALSE, nm); }
+    session_begin();                 // trainer report: notes a previous session that never closed normally (report.cpp)
     log("Dragonkin Trainer %s starting in %s", kVersion, g_cfg.root.c_str());
     load_config();
     settings_load();                 // settings.json: panel hotkey + panel scale

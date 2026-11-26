@@ -210,7 +210,7 @@ static bool g_raw_swallowed[256] = {};
 static LRESULT CALLBACK hk_WndProc(HWND h, UINT m, WPARAM w, LPARAM l) {
     // the game is closing: stop every game call from the trainer (a call during engine shutdown can request an asset
     // load, which is fatal after shutdown - crash at exit, 2026-11-09)
-    if (m == WM_CLOSE || m == WM_DESTROY || m == WM_QUIT || m == WM_ENDSESSION) g_game_exiting = true;
+    if (m == WM_CLOSE || m == WM_DESTROY || m == WM_QUIT || m == WM_ENDSESSION) { g_game_exiting = true; session_clean_exit(); }
     if ((m == WM_KEYUP || m == WM_SYSKEYUP) && g_msg_swallowed[w & 0xFF]) {   // release of a press the game never saw
         g_msg_swallowed[w & 0xFF] = false;
         if (!g_retired && trinity::g_state.menuOpen) { __try { ImGui_ImplWin32_WndProcHandler(h, m, w, l); } __except (EXCEPTION_EXECUTE_HANDLER) {} }
@@ -507,6 +507,10 @@ bool install_overlay() {
     return okh;
 }
 
+json overlay_status() {   // both builds (the trainer report reads it)
+    return { {"role", g_host ? "client (second copy)" : "host"}, {"hooks", g_hooks_ok.load()}, {"frames_drawn", g_frames.load()}, {"visible", overlay_visible()},
+             {"window", hexstr((uint64_t)g_hwnd)}, {"input_attached", o_WndProc != nullptr} };
+}
 
 void overlay_retire() { trinity::g_state.menuOpen = false; }
 void overlay_shutdown() { trinity::hooks::RemoveDX12Hooks(); }
