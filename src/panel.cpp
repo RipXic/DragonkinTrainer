@@ -780,13 +780,16 @@ static std::string pretty_attr(const std::string& a) {
 }
 struct Frag { int64_t handle = 0; int rarity = 0; bool onGrid = false, floating = false; int size = 0; std::vector<Slot> slots; };
 struct Affix { std::string attr; double value = 0, eff = 0; bool divine = false, primary = false, corrupted = false; };
+struct Addon { std::string tag; double eff = 0; bool divine = false; };     // potion effect
 struct Gear { int64_t handle = 0; bool equipped = false; std::string tag, name; int level = 0, rarity = -1, rerolls = -1; std::vector<Affix> affixes;
-              bool rav = false; std::string rav_name, rav_text; int rav_left = -1, rav_max = 0; };
+              bool rav = false; std::string rav_name, rav_text; int rav_left = -1, rav_max = 0;
+              std::string talent; int talent_pts = 0; std::vector<Addon> addons; };
 
 struct SlotUI {          // key "handle:slot"
     std::vector<std::string> opts, opt_names, opt_desc; bool loaded = false; int64_t opts_seq = 0;
     int sel = -1;        // index into opts, -1 = keep the current tag
     int rarity = -1;     // -1 = not initialised from the slot yet
+    int divine = -1;     // -1 = not initialised from the slot yet, else 0 / 1
     char filter[64] = {};
     int64_t apply_seq = 0;
 };
@@ -834,6 +837,8 @@ static Gear parse_gear(const json& j) {
     Gear g; g.handle = (int64_t)jnum(j, "handle", 0); g.equipped = jbool(j, "equipped", false); g.tag = jstr(j, "tag"); g.name = jstr(j, "name");
     g.level = (int)jnum(j, "level", 0); g.rarity = jrar(j, "rarity"); g.rerolls = (int)jnum(j, "rerollsLeft", -1);
     for (auto& a : jlist_at(j, "affixes")) if (a.is_object()) g.affixes.push_back(parse_affix(a));
+    g.talent = jstr(j, "talent"); if (g.talent == "None") g.talent.clear(); g.talent_pts = (int)jnum(j, "talentPoints", 0);
+    for (auto& a : jlist_at(j, "addons")) if (a.is_object()) g.addons.push_back({ jstr(a, "tag"), jnum(a, "eff", 0), jbool(a, "divine", false) });
     auto rv = j.find("ravenous");
     if (rv != j.end() && rv->is_object()) { g.rav = true; g.rav_name = jstr(*rv, "name"); g.rav_text = jstr(*rv, "text");
         g.rav_left = (int)jnum(*rv, "left", -1); g.rav_max = (int)jnum(*rv, "max", 0); }
@@ -894,7 +899,7 @@ static void apply_frag_slot(int64_t h, int slot, const std::string& tag, int rar
             Frag nf = parse_frag(*fr);
             if (Frag* f = find_frag(h)) *f = nf; else g_frags.push_back(nf);
         }
-        u.loaded = false; u.opts.clear(); u.sel = -1; u.rarity = -1;   // re-read from the updated slot
+        u.loaded = false; u.opts.clear(); u.sel = -1; u.rarity = -1; u.divine = -1;   // re-read from the updated slot
         std::string now_label = pretty_tag(tag);
         if (Frag* f = find_frag(h)) if (slot >= 1 && slot <= (int)f->slots.size()) now_label = slot_label(f->slots[slot - 1].tag, f->slots[slot - 1].name);
         if (!inner) set_msg("fs:" + k, "Game call returned false - slot unchanged? (" + as_text(res) + ")", false);
@@ -911,7 +916,7 @@ static void frag_max(int64_t h) {
         if (res.is_object() && res.contains("slots")) fj = &res;
         else if (res.is_object() && res.contains("fragment") && res["fragment"].is_object()) fj = &res["fragment"];
         if (fj) { Frag nf = parse_frag(*fj); if (Frag* f = find_frag(h)) *f = nf; else g_frags.push_back(nf); }
-        for (auto& kv : g_slot_ui) if (kv.first.rfind(std::to_string(h) + ":", 0) == 0) kv.second.rarity = -1;
+        for (auto& kv : g_slot_ui) if (kv.first.rfind(std::to_string(h) + ":", 0) == 0) { kv.second.rarity = -1; kv.second.divine = -1; }
         set_msg(mk, fj ? "Every slot is now Mythical" : "Done (no fragment data returned - refresh)", true);
     });
 }
@@ -1021,6 +1026,7 @@ static void draw_frag_slot(Frag& f, int si, bool online) {
     const std::string k = key(f.handle, si);
     SlotUI& u = g_slot_ui[k];
     if (u.rarity < 0) u.rarity = std::clamp(s.rarity, 0, 4);
+    if (u.divine < 0) u.divine = s.divine ? 1 : 0;
     ImGui::PushID(si);
     char head[300];
     sprintf_s(head, "Slot %d   %s###slot", si, slot_label(s.tag, s.name).c_str());
@@ -1080,20 +1086,16 @@ static void draw_frag_slot(Frag& f, int si, bool online) {
         ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Rarity"); ImGui::SameLine(lw);
         ImGui::SetNextItemWidth(S(180));
         ImGui::Combo("##rar", &u.rarity, kRar, 5);
-        // divine: does not stick on fragments
+        // divine: DKE.frag_set writes m_bDivine on the stored slot after the game's apply (dk_editor.cpp)
         same_line_or_wrap(S(80), lw, S(16));
-        ImGui::BeginDisabled(true); bool dv = s.divine; ImGui::Checkbox("Divine", &dv); ImGui::EndDisabled();
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("Divine does not stick on fragments");
-        { const char* hint = "(does not stick on fragments)";
-          const float hw = ImGui::CalcTextSize(hint).x;
-          const float used = ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + ImGui::GetScrollX();
-          if (used + S(8) + hw <= ImGui::GetWindowContentRegionMax().x) { ImGui::SameLine(); ImGui::TextDisabled("%s", hint); } }
+        { bool dv = u.divine == 1; if (ImGui::Checkbox("Divine##fdv", &dv)) u.divine = dv ? 1 : 0; }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Divine slot - set when you press APPLY");
         // apply
         ImGui::Dummy(ImVec2(0, S(2)));
         ImGui::BeginDisabled(!online || busy_apply || busy_opts);
         if (ui::primary(busy_apply ? "APPLYING...##ap" : "APPLY##ap", S(140), ImGui::GetFrameHeight() + S(2))) {
             const std::string tag = u.sel >= 0 && u.sel < (int)u.opts.size() ? u.opts[u.sel] : s.tag;   // never null
-            apply_frag_slot(f.handle, si, tag, u.rarity, s.divine);
+            apply_frag_slot(f.handle, si, tag, u.rarity, u.divine == 1);
         }
         ImGui::EndDisabled();
         if (busy_apply) loading_line("Apply");
@@ -1155,6 +1157,67 @@ static bool gear_matches(const Gear& g, const std::string& flt) {
     for (auto& a : g.affixes) if (lower(a.attr).find(flt) != std::string::npos) return true;
     return false;
 }
+// ---- rings (2026-11-26): the game has no reroll for rings, so the stat list is the game's own ring-crafting list
+// (DKE.ring_attrs) and DKE.affix_write hands the new affix to the game's ApplyRerollChangeEquipmentAffix
+struct RingAffUI { int sel = -1; double value = 0; bool divine = false; bool init = false; int64_t seq = 0; };
+static std::map<std::string, RingAffUI> g_ring_ui;
+static std::vector<std::string> g_ring_attrs; static bool g_ring_loaded = false; static int64_t g_ring_seq = 0;
+static bool tag_ends(const std::string& t, const char* suf) { const size_t n = strlen(suf); return t.size() >= n && t.compare(t.size() - n, n, suf) == 0; }
+static bool is_ring(const Gear& g) { return tag_ends(g.tag, ".Ring"); }
+static bool is_potion(const Gear& g) { return tag_ends(g.tag, ".Potion"); }
+static void fetch_ring_attrs() {
+    g_ring_seq = lua_call("DKE.ring_attrs", json::array(), [](bool okv, const json& res) {
+        g_ring_seq = 0; g_ring_loaded = true;
+        if (!okv) { set_msg("gear", "Ring stat list failed: " + err_text(res), false); return; }
+        g_ring_attrs.clear(); for (auto& x : jlist_at(res, "attrs")) if (x.is_string()) g_ring_attrs.push_back(x.get<std::string>());
+    });
+}
+static void apply_ring_affix(int64_t h, int ai, const std::string& attr, double value, bool divine) {
+    const std::string k = key(h, ai); set_msg("ga:" + k, "", true);
+    g_ring_ui[k].seq = lua_call("DKE.affix_write", json::array({ h, ai, attr, value, divine }), [k, h](bool okv, const json& res) {
+        RingAffUI& u = g_ring_ui[k]; u.seq = 0;
+        if (!okv) { set_msg("ga:" + k, "Apply failed: " + err_text(res), false); return; }
+        auto it = res.is_object() ? res.find("item") : res.end();
+        if (it != res.end() && it->is_object()) { Gear ng = parse_gear(*it); if (Gear* g = find_gear(h)) { ng.equipped = g->equipped; *g = ng; } }
+        u.init = false;
+        const bool inner = res.is_object() && jbool(res, "ok", false);
+        set_msg("ga:" + k, inner ? "Applied" : "Game call returned false - stat unchanged?", inner);
+    });
+}
+static void draw_ring_affix(Gear& g, int ai, const Affix& a, bool online) {
+    const std::string k = key(g.handle, ai); RingAffUI& u = g_ring_ui[k];
+    if (!g_ring_loaded && !call_busy(g_ring_seq) && online) fetch_ring_attrs();
+    if (!u.init) { u.value = a.value; u.divine = a.divine; u.sel = -1; u.init = true; }
+    const bool busy = call_busy(u.seq);
+    ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Stat"); ImGui::SameLine(S(80));
+    ImGui::SetNextItemWidth(std::min(S(300), ImGui::GetContentRegionAvail().x - S(4)));
+    const std::string keep = "(keep) " + pretty_attr(a.attr);
+    const std::string pv = u.sel >= 0 && u.sel < (int)g_ring_attrs.size() ? pretty_attr(g_ring_attrs[u.sel])
+                         : call_busy(g_ring_seq) ? std::string("loading...") : keep;
+    ImGui::BeginDisabled(g_ring_attrs.empty());
+    if (ImGui::BeginCombo("##rs", pv.c_str(), ImGuiComboFlags_HeightLarge)) {
+        if (ImGui::Selectable(keep.c_str(), u.sel < 0)) u.sel = -1;
+        for (int i = 0; i < (int)g_ring_attrs.size(); ++i) {
+            ImGui::PushID(i);
+            if (ImGui::Selectable(pretty_attr(g_ring_attrs[i]).c_str(), u.sel == i)) u.sel = i;
+            ImGui::PopID();
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::EndDisabled();
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("Every stat the game's ring crafting can put on a ring");
+    ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Value"); ImGui::SameLine(S(80));
+    ImGui::SetNextItemWidth(S(160));
+    ImGui::InputDouble("##rv", &u.value, 0, 0, "%.3f");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Any number works. Percent stats are fractions (0.30 = 30%%).");
+    same_line_or_wrap(S(100), S(80), S(16));                 // narrow painted pane: Divine goes under the value
+    ImGui::Checkbox("Divine##rd", &u.divine);
+    ImGui::BeginDisabled(!online || busy);
+    if (ui::primary(busy ? "APPLYING...##rap" : "APPLY##rap", S(140), ImGui::GetFrameHeight()))
+        apply_ring_affix(g.handle, ai, u.sel >= 0 && u.sel < (int)g_ring_attrs.size() ? g_ring_attrs[u.sel] : std::string(), u.value, u.divine);
+    ImGui::EndDisabled();
+    if (busy) loading_line("Apply");
+}
 static void draw_affix(Gear& g, int ai, bool online) {
     Affix& a = g.affixes[ai - 1];
     const std::string k = key(g.handle, ai);
@@ -1169,6 +1232,13 @@ static void draw_affix(Gear& g, int ai, bool online) {
     if (open) {
         ImGui::Indent(S(12));
         if (a.eff != 0) text_dim("Effectiveness " + fnum(a.eff));
+        if (is_ring(g)) {                                   // rings: no reroll in the game - own editor
+            draw_ring_affix(g, ai, a, online);
+            show_msg("ga:" + k);
+            ImGui::Unindent(S(12)); ImGui::Dummy(ImVec2(0, S(4)));
+            ImGui::PopID();
+            return;
+        }
         const bool busy_roll = call_busy(u.opts_seq), busy_apply = call_busy(u.apply_seq);
         const bool busy_attrs = call_busy(u.attrs_seq), busy_pick = call_busy(u.pick_seq);
         const bool busy_any = busy_roll || busy_apply || busy_pick;
@@ -1407,6 +1477,8 @@ static void draw_ravenous(Gear& g, bool online) {
     text_dim("The eaten item is destroyed, like in the game. Voracity is refilled after each devour.", ui::kDim);
     show_msg("rav");
 }
+static void draw_item_props(Gear& g, bool online);   // after the TALENTS page (uses its talent list)
+static void draw_potion(Gear& g, bool online);
 static void draw_gear(bool online) {
     toolbar("gear", online, call_busy(g_gear_seq), g_gfilter, sizeof g_gfilter, "Filter by tag or affix...", refresh_gear);
     show_msg("gear");
@@ -1439,11 +1511,17 @@ static void draw_gear(bool online) {
         text_dim(g->tag);
         ImGui::TextDisabled("%s  |  level %d  |  %s  |  rerolls left %s  |  handle %lld", rar_name(g->rarity), g->level,
                             g->equipped ? "equipped" : "in the bag", g->rerolls < 0 ? "-" : std::to_string(g->rerolls).c_str(), (long long)g->handle);
-        section_header("Affixes");
-        if (g->affixes.empty()) text_dim("This item has no affixes.");
-        for (int ai = 1; ai <= (int)g->affixes.size(); ++ai) draw_affix(*g, ai, online);
-        text_dim("Pick an attribute and press GET THIS AFFIX (or take RANDOM OPTIONS). The affix always comes from the game's own "
-                 "reroll generator; APPLY passes it back with your value / divine.");
+        draw_item_props(*g, online);
+        if (is_potion(*g)) draw_potion(*g, online);
+        else {
+            section_header("Affixes");
+            if (g->affixes.empty()) text_dim("This item has no affixes.");
+            for (int ai = 1; ai <= (int)g->affixes.size(); ++ai) draw_affix(*g, ai, online);
+            if (is_ring(*g)) text_dim("Rings have no reroll in the game: pick a stat from the game's ring crafting list, set the value "
+                                      "and divine, then APPLY. The game applies the change itself.");
+            else text_dim("Pick an attribute and press GET THIS AFFIX (or take RANDOM OPTIONS). The affix always comes from the game's own "
+                          "reroll generator; APPLY passes it back with your value / divine.");
+        }
         draw_ravenous(*g, online);
     }
     ImGui::EndChild();
@@ -1530,6 +1608,160 @@ static void draw_talents(bool online) {
         ImGui::PopID();
     }
     ImGui::EndChild();
+}
+
+// ---- GEAR > Item (2026-11-26, Discord request): level, rarity, talent of one item (DKE.item_set - the game has no
+// function for these: direct writes, then the game's own item re-send; a worn item's equipment copy is updated too and
+// the game rebuilds bonuses and talents). Rarity also sets the reroll ranges of the item's affixes.
+struct ItemUI { int64_t h = 0; int level = 1, rarity = 0, pts = 0; std::string ttag; int64_t seq = 0;
+                std::string snap; };              // the item's own values the fields were filled from (re-fill when they change)
+static ItemUI g_item_ui;
+static const Talent* talent_by_tag(const std::string& tag) { for (auto& t : g_talents) if (t.tag == tag) return &t; return nullptr; }
+static std::string talent_label(const std::string& tag) {
+    if (tag.empty()) return "(none)";
+    const Talent* t = talent_by_tag(tag); if (t) return t->name;
+    const size_t k = tag.rfind("Talent."); return k == std::string::npos ? tag : tag.substr(k + 7);
+}
+static void item_apply(const Gear& g) {
+    const ItemUI u = g_item_ui; set_msg("item", "", true);
+    json o = { {"level", u.level}, {"rarity", u.rarity} };
+    if (!is_potion(g)) { o["talent"] = u.ttag; o["points"] = u.ttag.empty() ? 0 : u.pts; }
+    g_item_ui.seq = lua_call("DKE.item_set", json::array({ g.handle, o }), [](bool okv, const json& res) {
+        g_item_ui.seq = 0;
+        if (!okv) { set_msg("item", "Apply failed: " + err_text(res), false); return; }
+        set_msg("item", "Applied" + std::string(jbool(res, "equipped", false) ? " - your character is updated" : ""), true);
+        refresh_gear();                                   // the fields re-fill when the re-read item differs (snap) if (g_tal_loaded) refresh_talents();
+    });
+}
+static void draw_item_props(Gear& g, bool online) {
+    ItemUI& u = g_item_ui;
+    const std::string snap = std::to_string(g.level) + "|" + std::to_string(g.rarity) + "|" + g.talent + "|" + std::to_string(g.talent_pts);
+    if (u.h != g.handle || u.snap != snap) {
+        const int64_t seq = u.h == g.handle ? u.seq : 0;
+        u = ItemUI(); u.h = g.handle; u.seq = seq; u.snap = snap;
+        u.level = g.level; u.rarity = std::clamp(g.rarity, 0, 4); u.ttag = g.talent; u.pts = g.talent_pts;
+    }
+    if (!g_tal_loaded && !call_busy(g_tal_seq) && online && !is_potion(g)) refresh_talents();
+    const bool busy = call_busy(u.seq);
+    section_header("Item");
+    const float lw = S(80);
+    ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Level"); ImGui::SameLine(lw);
+    ImGui::SetNextItemWidth(S(110));
+    if (ImGui::InputInt("##ilvl", &u.level)) u.level = std::clamp(u.level, 1, 100);
+    same_line_or_wrap(S(60) + S(180), lw, S(16));
+    ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Rarity"); ImGui::SameLine(0, S(8));
+    ImGui::SetNextItemWidth(S(180));
+    ImGui::Combo("##irar", &u.rarity, kRar, 5);
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Also sets the reroll value ranges for this item's affixes");
+    if (!is_potion(g)) {
+        ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Talent"); ImGui::SameLine(lw);
+        ImGui::SetNextItemWidth(std::min(S(260), ImGui::GetContentRegionAvail().x - S(4)));
+        if (ImGui::BeginCombo("##ital", talent_label(u.ttag).c_str(), ImGuiComboFlags_HeightLarge)) {
+            if (ImGui::Selectable("(none)", u.ttag.empty())) u.ttag.clear();
+            int group = -1;
+            for (auto& t : g_talents) {
+                const int grp = t.tag.find(".Common.") != std::string::npos ? 1 : t.tag.find(".Wyrmling.") != std::string::npos ? 2 : 0;
+                if (grp != group) { group = grp; ImGui::TextDisabled("%s", grp == 0 ? "Class" : grp == 1 ? "Common" : "Wyrmling"); }
+                ImGui::PushID(t.tag.c_str());
+                if (ImGui::Selectable(t.name.c_str(), u.ttag == t.tag)) { u.ttag = t.tag; if (!u.pts) u.pts = 1; }
+                if (ImGui::IsItemHovered() && !t.desc.empty()) { ImGui::BeginTooltip(); ImGui::PushTextWrapPos(S(380)); ImGui::TextUnformatted(t.desc.c_str()); ImGui::PopTextWrapPos(); ImGui::EndTooltip(); }
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        same_line_or_wrap(S(60) + S(150), lw, S(16));
+        ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Points"); ImGui::SameLine(0, S(8));
+        ImGui::SetNextItemWidth(S(150));
+        ImGui::BeginDisabled(u.ttag.empty());
+        ImGui::SliderInt("##ipts", &u.pts, 0, 6);
+        ImGui::EndDisabled();
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("Talent ranks unlock at 1 / 3 / 6 points (all sources together)");
+    }
+    ImGui::BeginDisabled(!online || busy);
+    if (ui::primary(busy ? "APPLYING...##iap" : "APPLY##iap", S(140), ImGui::GetFrameHeight() + S(2))) item_apply(g);
+    ImGui::EndDisabled();
+    if (busy) loading_line("Apply");
+    show_msg("item");
+}
+
+// ---- GEAR > Potion effects (2026-11-26): FHnSShared_ItemAddon_V1 {effect tag, strength, divine}; the effect list is the
+// game's own (DKE.potion_effects = GetAllPotionAdditionalEffects); DKE.potion_set writes it and the game re-sends / rebuilds
+struct PotFx { std::string tag, name, desc; };
+static std::vector<PotFx> g_pfx; static bool g_pfx_loaded = false; static int64_t g_pfx_seq = 0;
+struct PotUI { int sel = -1; double pct = 0; bool divine = false; bool init = false; int64_t seq = 0; std::string snap; };
+static std::map<std::string, PotUI> g_pot_ui;
+static void fetch_potion_fx() {
+    g_pfx_seq = lua_call("DKE.potion_effects", json::array(), [](bool okv, const json& res) {
+        g_pfx_seq = 0; g_pfx_loaded = true;
+        if (!okv) { set_msg("pot", "Effect list failed: " + err_text(res), false); return; }
+        g_pfx.clear(); for (auto& x : jlist(res)) if (x.is_object()) g_pfx.push_back({ jstr(x, "tag"), jstr(x, "name"), jstr(x, "desc") });
+    });
+}
+static std::string pfx_name(const std::string& tag) {
+    for (auto& p : g_pfx) if (p.tag == tag && !p.name.empty()) return p.name;
+    if (tag.find(".Base.") != std::string::npos) return "Healing (base)";     // base effects are not in the game's list
+    const size_t k = tag.rfind("Potion."); return k == std::string::npos ? tag : tag.substr(k + 7);
+}
+static void apply_potion(int64_t h, int k1, const std::string& tag, double eff, bool divine) {
+    const std::string k = "p:" + key(h, k1); set_msg(k, "", true);
+    g_pot_ui[k].seq = lua_call("DKE.potion_set", json::array({ h, k1, tag, eff, divine }), [k](bool okv, const json& res) {
+        PotUI& u = g_pot_ui[k]; u.seq = 0;                // fields re-fill when the re-read effect differs (snap)
+        if (!okv) { set_msg(k, "Apply failed: " + err_text(res), false); return; }
+        set_msg(k, "Applied", true); refresh_gear();
+    });
+}
+static void draw_potion(Gear& g, bool online) {
+    if (!g_pfx_loaded && !call_busy(g_pfx_seq) && online) fetch_potion_fx();
+    section_header("Potion effects");
+    show_msg("pot");
+    if (g.addons.empty()) { text_dim("This potion has no effects."); return; }
+    for (int k1 = 1; k1 <= (int)g.addons.size(); ++k1) {
+        const Addon& ad = g.addons[k1 - 1];
+        const std::string k = "p:" + key(g.handle, k1); PotUI& u = g_pot_ui[k];
+        const std::string snap = ad.tag + "|" + std::to_string(ad.eff) + "|" + (ad.divine ? "1" : "0");
+        if (!u.init || u.snap != snap) { u.sel = -1; u.pct = ad.eff * 100.0; u.divine = ad.divine; u.init = true; u.snap = snap; }
+        const bool base = ad.tag.find(".Base.") != std::string::npos, busy = call_busy(u.seq);
+        ImGui::PushID(k1);
+        char head[200]; sprintf_s(head, "%d.  %s   %.0f%%%s###pfx", k1, pfx_name(ad.tag).c_str(), ad.eff * 100.0, ad.divine ? "   [divine]" : "");
+        ImGui::PushStyleColor(ImGuiCol_Text, ui::rgbv(ad.divine ? ui::kGoldHi : ui::kBone));
+        const bool open = ImGui::CollapsingHeader(head);
+        ImGui::PopStyleColor();
+        if (open) {
+            ImGui::Indent(S(12));
+            for (auto& p : g_pfx) if (p.tag == ad.tag && !p.desc.empty()) { ImGui::PushTextWrapPos(ImGui::GetContentRegionMax().x - S(8)); text_dim(rav_text(p.desc)); ImGui::PopTextWrapPos(); }
+            if (!base) {
+                ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Effect"); ImGui::SameLine(S(80));
+                ImGui::SetNextItemWidth(std::min(S(260), ImGui::GetContentRegionAvail().x - S(4)));
+                const std::string keep = "(keep) " + pfx_name(ad.tag);
+                const std::string pv = u.sel >= 0 && u.sel < (int)g_pfx.size() ? g_pfx[u.sel].name : keep;
+                if (ImGui::BeginCombo("##pe", pv.c_str(), ImGuiComboFlags_HeightLarge)) {
+                    if (ImGui::Selectable(keep.c_str(), u.sel < 0)) u.sel = -1;
+                    for (int i = 0; i < (int)g_pfx.size(); ++i) {
+                        if (g_pfx[i].tag.find(".Base.") != std::string::npos) continue;
+                        ImGui::PushID(i);
+                        if (ImGui::Selectable(g_pfx[i].name.empty() ? g_pfx[i].tag.c_str() : g_pfx[i].name.c_str(), u.sel == i)) u.sel = i;
+                        if (ImGui::IsItemHovered() && !g_pfx[i].desc.empty()) { ImGui::BeginTooltip(); ImGui::PushTextWrapPos(S(380)); ImGui::TextUnformatted(rav_text(g_pfx[i].desc).c_str()); ImGui::PopTextWrapPos(); ImGui::EndTooltip(); }
+                        ImGui::PopID();
+                    }
+                    ImGui::EndCombo();
+                }
+            } else text_dim("The base effect (the healing itself) keeps its kind; strength and divine can change.");
+            ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Strength"); ImGui::SameLine(S(80));
+            ImGui::SetNextItemWidth(S(120));
+            if (ImGui::InputDouble("##pp", &u.pct, 0, 0, "%.0f %%")) u.pct = std::clamp(u.pct, 1.0, 200.0);
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("The effect's strength: 100%% = the best normal roll (1 - 200)");
+            same_line_or_wrap(S(100), S(80), S(16));
+            ImGui::Checkbox("Divine##pd", &u.divine);
+            ImGui::BeginDisabled(!online || busy);
+            if (ui::primary(busy ? "APPLYING...##pap" : "APPLY##pap", S(140), ImGui::GetFrameHeight()))
+                apply_potion(g.handle, k1, u.sel >= 0 && u.sel < (int)g_pfx.size() ? g_pfx[u.sel].tag : std::string(), u.pct / 100.0, u.divine);
+            ImGui::EndDisabled();
+            if (busy) loading_line("Apply");
+            show_msg(k);
+            ImGui::Unindent(S(12)); ImGui::Dummy(ImVec2(0, S(4)));
+        }
+        ImGui::PopID();
+    }
 }
 
 static void draw_editor(bool online) {

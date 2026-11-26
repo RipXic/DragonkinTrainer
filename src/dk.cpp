@@ -656,6 +656,13 @@ static json talent_json() {
     }
     return out;
 }
+// for the item editor (dk_editor.cpp): the talent catalog of this class + a recompute after an item's talent changed
+json editor_talents() { return talent_json(); }
+uintptr_t editor_equipment_comp() { return player_component("HnSEquipmentComponent"); }
+void editor_talents_recompute() {
+    const uintptr_t comp = talent_comp(); if (!comp) return;
+    for (const char* fn : { "ComputeTalentPoints", "RefreshTalents" }) { Params c = ue::params_for(comp, fn); if (c) callf(comp, c); }
+}
 static Def refill_tick(const char* id, const char* name, const char* cur, const char* max) {
     Def d; d.id = id; d.name = name; d.kind = "tick"; std::string c = cur, m = max;
     d.tick = [c, m](double) { refill(c.c_str(), m.c_str()); };

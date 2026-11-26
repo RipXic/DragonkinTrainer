@@ -246,6 +246,14 @@ static json gear_json(const ItemRef& r) {
     json j = { {"handle", handle_of(r)}, {"equipped", r.type == 1}, {"tag", tag}, {"level", (int)num(spec, specp.owner_struct, "m_nItemLevel")},
                {"rarity", (int)num(e, ep.owner_struct, "m_eEquipmentRarity")}, {"rerollsLeft", (int)num(e, ep.owner_struct, "m_nRerollLeft")}, {"affixes", af} };
     std::string nm = item_name(tag); if (!nm.empty()) j["name"] = nm;
+    j["talent"] = tagname(spec, specp.owner_struct, "m_TalentBonusSpec.m_Talent.TagName");
+    j["talentPoints"] = (int)num(spec, specp.owner_struct, "m_TalentBonusSpec.m_nPoints");
+    json ad = json::array();                                            // potion effects (m_Addons)
+    if (Prop ap = sf(ep.owner_struct, "m_Addons")) { auto aa = ue::array_of(e, ap); Prop aip = ue::array_inner(ap);
+        for (int i = 0; i < aa.num && i < 16; ++i) { const uintptr_t x = (uintptr_t)aa.data + i * aip.size;
+            ad.push_back({ {"tag", tagname(x, aip.owner_struct, "m_AddonIdTag.TagName")}, {"eff", num(x, aip.owner_struct, "m_fEfficiency")},
+                           {"divine", num(x, aip.owner_struct, "m_bIsDivine") != 0} }); } }
+    j["addons"] = ad;
     return j;
 }
 static json gear() {
@@ -661,6 +669,186 @@ static json feed_apply(int64_t rh, int64_t oh, int ai, int n1, bool free_feed) {
     }
     return out;
 }
+// ---- item details: level, rarity, talent, potion effects (2026-11-26, Discord request from Adriano)
+// FHnSItemSpec.m_nItemLevel, .m_TalentBonusSpec {m_Talent tag, m_nPoints}, m_EquipmentItemSubSpec.m_eEquipmentRarity,
+// .m_Addons (potion effects: FHnSShared_ItemAddon_V1 {m_AddonIdTag, m_fEfficiency, m_bIsDivine}).
+json editor_talents();
+void editor_talents_recompute();
+static json item_info(int64_t h) {
+    ItemRef r; if (!find_any_item(h, r)) return err("no item");
+    uintptr_t spec, e, est; Prop specp; if (!equip_sub(r, spec, specp, e, est)) return err("not equipment");
+    const uintptr_t sst = specp.owner_struct;
+    json j = { {"handle", h}, {"equipped", r.type == 1}, {"tag", tagname(spec, sst, "m_ItemTag.TagName")},
+               {"level", (int)num(spec, sst, "m_nItemLevel")}, {"rarity", (int)num(e, est, "m_eEquipmentRarity")},
+               {"divineNoAffix", num(e, est, "m_bIsDivineWithoutAffixes") != 0},
+               {"talent", tagname(spec, sst, "m_TalentBonusSpec.m_Talent.TagName")}, {"talentPoints", (int)num(spec, sst, "m_TalentBonusSpec.m_nPoints")} };
+    json ad = json::array();
+    if (Prop ap = sf(est, "m_Addons")) { auto arr = ue::array_of(e, ap); Prop ip = ue::array_inner(ap);
+        for (int i = 0; i < arr.num && i < 16; ++i) { const uintptr_t x = (uintptr_t)arr.data + i * ip.size;
+            ad.push_back({ {"tag", tagname(x, ip.owner_struct, "m_AddonIdTag.TagName")}, {"eff", num(x, ip.owner_struct, "m_fEfficiency")},
+                           {"divine", num(x, ip.owner_struct, "m_bIsDivine") != 0} }); } }
+    j["addons"] = ad;
+    return j;
+}
+// direct field writes (the game has no function for these), then the game's own item re-send so menus update;
+// a talent change on a worn item is recomputed through the talent component (ComputeTalentPoints + RefreshTalents)
+uintptr_t editor_equipment_comp();
+// a worn item has a second copy in the character's UHnSEquipmentComponent.m_EquippedItems (what bonuses are built from)
+static uintptr_t worn_copy(int64_t h, Prop& specp_out) {
+    const uintptr_t ec = editor_equipment_comp(); if (!ec) return 0;
+    Prop ip = ue::find_prop(ue::class_of(ec), "m_EquippedItems"); if (!ip) return 0;
+    auto arr = ue::array_of(ec, ip); Prop in = ue::array_inner(ip); Prop sp = sf(in.owner_struct, "m_Spec"); if (!sp) return 0;
+    for (int i = 0; i < arr.num && i < 32; ++i) {
+        const uintptr_t s = (uintptr_t)arr.data + i * in.size + sp.offset;
+        if ((int64_t)num(s, sp.owner_struct, "m_Handle.Handle", -1) == h) { specp_out = sp; return s; }
+    }
+    return 0;
+}
+static std::string item_write(uintptr_t spec, const Prop& specp, const json& o) {
+    const uintptr_t sst = specp.owner_struct; uintptr_t b; Prop p;
+    uintptr_t eb; Prop ep; if (!field(spec, sst, "m_EquipmentItemSubSpec", eb, ep)) return "not equipment";
+    const uintptr_t e = eb + ep.offset, est = ep.owner_struct;
+    if (o.contains("level") && field(spec, sst, "m_nItemLevel", b, p)) ue::set_num(b, p, std::clamp(o["level"].get<int>(), 1, 100));
+    if (o.contains("rarity") && field(e, est, "m_eEquipmentRarity", b, p)) ue::set_num(b, p, std::clamp(o["rarity"].get<int>(), 0, 4));
+    if (o.contains("talent")) {
+        const std::string t = o["talent"].get<std::string>(); FName fn{};
+        if (!t.empty() && t != "None" && !ue::name_find(t, fn)) return "unknown talent " + t;
+        if (field(spec, sst, "m_TalentBonusSpec.m_Talent.TagName", b, p)) ue::set<FName>(b, p, fn);
+    }
+    if (o.contains("points") && field(spec, sst, "m_TalentBonusSpec.m_nPoints", b, p)) ue::set_num(b, p, std::clamp(o["points"].get<int>(), 0, 6));
+    if (o.contains("addon") && o.contains("addon_divine")) {          // potion effect divine flag, addon index 1-based
+        Prop ap = sf(est, "m_Addons"); if (!ap) return "no effects";
+        auto arr = ue::array_of(e, ap); Prop ip = ue::array_inner(ap); const int i = o["addon"].get<int>() - 1;
+        if (i < 0 || i >= arr.num) return "no effect " + std::to_string(i + 1);
+        if (field((uintptr_t)arr.data + i * ip.size, ip.owner_struct, "m_bIsDivine", b, p)) ue::set_num(b, p, o["addon_divine"].get<bool>() ? 1 : 0);
+    }
+    return "";
+}
+static json item_set(int64_t h, const json& o) {
+    ItemRef r; if (!find_any_item(h, r)) return err("no item");
+    Prop specp; uintptr_t spec = spec_of(r, specp); if (!spec) return err("no item");
+    std::string e = item_write(spec, specp, o); if (!e.empty()) return err(e);
+    item_resend(spec, specp);
+    if (r.type == 1) {                                                 // worn: same change on the equipment copy, then the game rebuilds
+        Prop wp; const uintptr_t w = worn_copy(h, wp);
+        if (w) { item_write(w, wp, o); const uintptr_t ec = editor_equipment_comp();
+            if (Params c = ue::params_for(ec, "CallEquippedItemsChanged")) call_on(ec, c); }
+        editor_talents_recompute();
+    }
+    json j = item_info(h); Prop wp; j["wornCopy"] = r.type == 1 ? (worn_copy(h, wp) != 0) : false;
+    return j;
+}
+// ---- rings: the reroll system offers nothing for rings (GetRerollEquipmentAffix / ...Possibilities return empty), so the
+// stat list comes from the game's ring crafting (UHnSRingRecipeGeneratorLibrary::GetAllRingStatsRequirementsForTier) and
+// the change goes through the game's ApplyRerollChangeEquipmentAffix (it deep-copies the affix we pass; our buffer is a
+// byte copy of a game-made affix with a game-made FGameplayAttribute in it, never freed by us).
+static std::map<std::string, std::vector<uint8_t>> g_attr_bytes;     // attribute name -> FGameplayAttribute bytes (game-made)
+static json ring_attrs() {
+    uintptr_t L = lib("HnSRingRecipeGeneratorLibrary"); if (!L) return err("no ring library");
+    std::set<std::string> names; json dbg = json::array();
+    for (int tier = 0; tier <= 6; ++tier) for (int rnd = 0; rnd < 2; ++rnd) {
+        Params p = ue::params_for(L, "GetAllRingStatsRequirementsForTier"); if (!p) return err("no function");
+        int32_t t = tier; memcpy(p.at(arg(p, 0)), &t, 4); p.put_bool(arg(p, 1).name, rnd == 1);
+        std::string e; if (!call_on(L, p, &e)) return err(e);
+        Prop rp; for (auto& pp : ue::props(p.fn, false)) if (pp.flags & ue::CPF_ReturnParm) rp = pp;
+        Prop gp = ue::array_inner(rp); auto res = *(ue::TArray<uint8_t>*)p.ret_ptr();
+        if (tier == 1 && rnd == 0) dbg.push_back({ {"ret", rp.type}, {"inner", gp.owner_struct ? ue::name_of(gp.owner_struct) : gp.type}, {"size", gp.size}, {"num", res.num} });
+        // each entry: FHnSRingRecipeStatsMaterialRequirement {m_nTier, ..., TMap<FGameplayAttribute, EHnSMaterialCategory> m_StatsRequiredCategory}
+        Prop mp = sf(gp.owner_struct, "m_StatsRequiredCategory"); Prop kp, vp; int32_t voff = 0, stride = 0;
+        if (!mp || !ue::map_kv(mp, kp, vp, voff, stride)) continue;
+        for (int i = 0; i < res.num && i < 32; ++i) {
+            const uintptr_t g = (uintptr_t)res.data + i * gp.size;
+            for (auto& kv : ue::map_entries(g, mp)) {
+                const std::string n = ue::fstring(kv.first);              // FGameplayAttribute.AttributeName (FString at +0)
+                if (n.empty() || n.size() > 64) continue;
+                if (!g_attr_bytes.count(n)) { std::vector<uint8_t> v(kp.size); mread(kv.first, v.data(), v.size()); g_attr_bytes[n] = v; }
+                names.insert(n);
+            }
+        }
+    }
+    json out = json::array(); for (auto& n : names) out.push_back(n);
+    return { {"attrs", out}, {"debug", dbg} };
+}
+// set one affix: new attribute (optional, from g_attr_bytes), value, divine - through the game's apply
+static json affix_write(int64_t h, int ai, const std::string& attr, double value, bool divine) {
+    ItemRef r; uintptr_t spec, ab; Prop specp, affp; if (!gear_parts(h, r, spec, specp, ab, affp)) return err("no item");
+    auto arr = ue::array_of(ab, affp); Prop ip = ue::array_inner(affp); if (ai < 1 || ai > arr.num) return err("no affix");
+    std::vector<uint8_t> a(ip.size); mread((uintptr_t)arr.data + (ai - 1) * ip.size, a.data(), a.size());
+    const uintptr_t nb = (uintptr_t)a.data(), st = ip.owner_struct; uintptr_t b; Prop p;
+    if (!attr.empty()) {
+        auto it = g_attr_bytes.find(attr); if (it == g_attr_bytes.end()) return err("unknown stat " + attr + " (load the stat list first)");
+        if (!field(nb, st, "m_AttributeToModify", b, p)) return err("no attribute field");
+        memcpy((void*)(b + p.offset), it->second.data(), std::min<size_t>(it->second.size(), p.size));
+    }
+    if (field(nb, st, "m_fAffixValue", b, p)) ue::set_num(b, p, value);
+    if (field(nb, st, "m_bDivine", b, p)) ue::set_num(b, p, divine ? 1 : 0);
+    uintptr_t L = lib("HnSItemRerollLibrary"); Params c = ue::params_for(L, "ApplyRerollChangeEquipmentAffix"); if (!c) return err("no function");
+    uintptr_t hb; Prop hp; if (!field(spec, specp.owner_struct, "m_Handle", hb, hp)) return err("no handle");
+    mread(hb + hp.offset, c.at(arg(c, 0)), arg(c, 0).size);
+    int32_t idx = ai - 1; memcpy(c.at(arg(c, 1)), &idx, 4);
+    memcpy(c.at(arg(c, 2)), a.data(), std::min<size_t>(a.size(), arg(c, 2).size));
+    uintptr_t inv = player_inv(); memcpy(c.at(arg(c, 3)), &inv, 8);
+    c.put_bool(arg(c, 4).name, true); c.put_bool(arg(c, 5).name, true);
+    double rerolls = -1; { uintptr_t rb; Prop rp; if (field(spec, specp.owner_struct, "m_EquipmentItemSubSpec.m_nRerollLeft", rb, rp)) rerolls = ue::get_num(rb, rp); }
+    std::string e; if (!call_on(L, c, &e)) return err(e);
+    ItemRef now; const bool have = find_item(h, now);
+    if (have && rerolls >= 0) { Prop sp2; uintptr_t s2 = spec_of(now, sp2); uintptr_t rb; Prop rp; if (field(s2, sp2.owner_struct, "m_EquipmentItemSubSpec.m_nRerollLeft", rb, rp)) ue::set_num(rb, rp, rerolls); }
+    return { {"ok", c.ret<bool>()}, {"item", have ? gear_json(now) : json()} };
+}
+// ---- potions: effects = m_Addons {m_AddonIdTag, m_fEfficiency, m_bIsDivine}; the catalog = every UHnSItemAddonBase
+// class default object with an Items.Addon.Potion.* tag (name from its m_NameText, read only)
+static json potion_effects() {
+    // the game's own list: UHnSPotionRecipeGeneratorLibrary::GetAllPotionAdditionalEffects(world, bDebugAll=true) ->
+    // TArray<TSoftClassPtr<UHnSItemAddonBase>> (soft path = PackageName +8, AssetName +0x10), loaded, then the class default object
+    std::vector<uintptr_t> cdos;
+    {   uintptr_t L = lib("HnSPotionRecipeGeneratorLibrary"); Params p = L ? ue::params_for(L, "GetAllPotionAdditionalEffects") : Params();
+        if (!p) return err("no function");
+        uintptr_t pawn = player_pawn(); memcpy(p.at(arg(p, 0)), &pawn, 8); p.put_bool(arg(p, 1).name, true);
+        std::string e; if (!call_on(L, p, &e)) return err(e);
+        Prop rp; for (auto& pp : ue::props(p.fn, false)) if (pp.flags & ue::CPF_ReturnParm) rp = pp;
+        Prop gp = ue::array_inner(rp); auto res = *(ue::TArray<uint8_t>*)p.ret_ptr();
+        const int sz = gp.size > 0 ? gp.size : 0x28;
+        for (int i = 0; i < res.num && i < 200; ++i) {
+            const uintptr_t s = (uintptr_t)res.data + i * sz; FName pk{}, as{}; mread(s + 8, &pk, 8); mread(s + 0x10, &as, 8);
+            const std::string path = ue::name_str(pk) + "." + ue::name_str(as); if (path.size() < 4) continue;
+            const uintptr_t cls = ue::load_asset(path); const uintptr_t cdo = cls ? ue::cdo_of(cls) : 0; if (cdo) cdos.push_back(cdo);
+        }
+    }
+    // + the base effects (Items.Addon.Potion.Base.*): already-loaded addon class defaults
+    if (uintptr_t base = ue::find_class("HnSItemAddonBase")) for (uintptr_t o : ue::find_all(base, true)) if (ue::is_cdo(o)) cdos.push_back(o);
+    json out = json::array(); std::set<std::string> seen;
+    for (uintptr_t o : cdos) {
+        if (!ue::alive(o)) continue;
+        Prop tp = ue::find_prop(ue::class_of(o), "m_AddonIdTag"); if (!tp) continue;
+        FName n{}; mread(o + tp.offset, &n, sizeof n); const std::string tag = ue::name_str(n);
+        if (tag.rfind("Items.Addon.Potion.", 0) != 0 || seen.count(tag)) continue; seen.insert(tag);
+        json j = { {"tag", tag} };
+        if (Prop np = ue::find_prop(ue::class_of(o), "m_NameText")) j["name"] = ascii(ue::ftext(o + np.offset));
+        if (Prop dp = ue::find_prop(ue::class_of(o), "m_DescriptionText")) j["desc"] = ascii(ue::ftext(o + dp.offset));
+        out.push_back(j);
+    }
+    std::sort(out.begin(), out.end(), [](const json& a, const json& b) { return a["tag"].get<std::string>() < b["tag"].get<std::string>(); });
+    return out;
+}
+static json potion_set(int64_t h, int k1, const std::string& tag, double eff, bool divine) {
+    ItemRef r; if (!find_any_item(h, r)) return err("no item");
+    auto write = [&](uintptr_t spec, const Prop& specp) -> std::string {
+        uintptr_t eb; Prop ep; if (!field(spec, specp.owner_struct, "m_EquipmentItemSubSpec", eb, ep)) return "not equipment";
+        const uintptr_t e = eb + ep.offset; Prop ap = sf(ep.owner_struct, "m_Addons"); if (!ap) return "no effects";
+        auto arr = ue::array_of(e, ap); Prop ip = ue::array_inner(ap); if (k1 < 1 || k1 > arr.num) return "no effect " + std::to_string(k1);
+        const uintptr_t x = (uintptr_t)arr.data + (k1 - 1) * ip.size, st = ip.owner_struct; uintptr_t b; Prop p;
+        if (!tag.empty()) { FName fn{}; if (!ue::name_find(tag, fn)) return "unknown effect " + tag;
+            if (field(x, st, "m_AddonIdTag.TagName", b, p)) ue::set<FName>(b, p, fn); }
+        if (eff > 0 && field(x, st, "m_fEfficiency", b, p)) ue::set_num(b, p, std::clamp(eff, 0.01, 2.0));
+        if (field(x, st, "m_bIsDivine", b, p)) ue::set_num(b, p, divine ? 1 : 0);
+        return "";
+    };
+    Prop specp; uintptr_t spec = spec_of(r, specp); std::string e = write(spec, specp); if (!e.empty()) return err(e);
+    item_resend(spec, specp);
+    if (r.type == 1) { Prop wp; const uintptr_t w = worn_copy(h, wp);
+        if (w) { write(w, wp); const uintptr_t ec = editor_equipment_comp(); if (Params c = ue::params_for(ec, "CallEquippedItemsChanged")) call_on(ec, c); } }
+    return item_info(h);
+}
 json editor_call(const std::string& fn, const json& a) {
     auto I = [&](size_t i, double dv = 0) { return (a.is_array() && i < a.size() && a[i].is_number()) ? a[i].get<double>() : dv; };
     auto S = [&](size_t i) { return (a.is_array() && i < a.size() && a[i].is_string()) ? a[i].get<std::string>() : std::string(); };
@@ -679,6 +867,13 @@ json editor_call(const std::string& fn, const json& a) {
     if (fn == "DKE.gear_attrs") return gear_attrs((int64_t)I(0), (int)I(1));
     if (fn == "DKE.gear_set") return gear_set((int64_t)I(0), (int)I(1), (int)I(2, 1), a.is_array() && a.size() > 3 ? a[3] : json(), a.is_array() && a.size() > 4 ? a[4] : json());
     if (fn == "DKE.spec") return item_spec((int64_t)I(0));
+    if (fn == "DKE.item_info") return item_info((int64_t)I(0));
+    if (fn == "DKE.item_set") return item_set((int64_t)I(0), a.is_array() && a.size() > 1 && a[1].is_object() ? a[1] : json::object());
+    if (fn == "DKE.talents") return editor_talents();
+    if (fn == "DKE.ring_attrs") return ring_attrs();
+    if (fn == "DKE.affix_write") return affix_write((int64_t)I(0), (int)I(1), S(2), I(3), B(4));
+    if (fn == "DKE.potion_effects") return potion_effects();
+    if (fn == "DKE.potion_set") return potion_set((int64_t)I(0), (int)I(1), S(2), I(3), B(4));
     if (fn == "DKE.ravenous_list") return ravenous_list();
     if (fn == "DKE.ravenous_presets") return ravenous_presets();
     if (fn == "DKE.ravenous_info") return ravenous_info((int64_t)I(0));
